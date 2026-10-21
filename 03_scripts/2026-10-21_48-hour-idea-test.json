@@ -1,0 +1,78 @@
+{
+  "id": "2026-10-21_48-hour-idea-test",
+  "seed_id": "validate-before-build",
+  "status": "draft",
+  "created": "2026-10-21",
+  "title": "Test a business idea in 48 hours before you build it",
+  "topic": "Testing a business idea in 48 hours with free AI tools before spending money",
+  "category": "make_money_with_ai",
+  "hook_type": "list_number",
+  "target_audience": "Aspiring founders with an idea but no proof",
+  "audience_problem": "They're scared to spend money or months on an idea nobody wants",
+  "personal_claims_confirmed": false,
+  "beats": [
+    {
+      "section": "hook",
+      "voiceover": "Before you build anything, run this 48-hour test.",
+      "on_screen_text": "The 48-hour idea test",
+      "visual": "Talking head, timer graphic '48:00' counting down in the corner."
+    },
+    {
+      "section": "problem",
+      "voiceover": "Most people spend weeks building something before checking that anyone actually wants it.",
+      "on_screen_text": "Weeks building. Zero buyers.",
+      "visual": "Calendar pages flipping quickly, then a blank 'orders' screen."
+    },
+    {
+      "section": "point",
+      "voiceover": "First, ask an AI chatbot for your customer's ten biggest frustrations. Then check them against real reviews.",
+      "on_screen_text": "1. AI list -> check real reviews",
+      "visual": "Screen recording: typing the prompt into a chatbot, then scrolling public reviews (blur names)."
+    },
+    {
+      "section": "point",
+      "voiceover": "Next, make a one-page offer. One problem, one promise, one price.",
+      "on_screen_text": "2. One page: problem, promise, price",
+      "visual": "Screen recording of a simple one-page site being edited in a free website builder."
+    },
+    {
+      "section": "point",
+      "voiceover": "Then send it to ten people who fit, and ask them to join a waitlist or book a call.",
+      "on_screen_text": "3. Ten real people",
+      "visual": "Phone screen sending a short message; counter ticks 1 to 10."
+    },
+    {
+      "section": "example",
+      "voiceover": "If nobody's interested, you've lost two days, not two months. If a few say yes, you've got a reason to keep going.",
+      "on_screen_text": "2 days lost, not 2 months",
+      "visual": "Side-by-side: '2 days' vs '2 months' with the second crossed out."
+    },
+    {
+      "section": "cta",
+      "voiceover": "Save this for your next idea.",
+      "on_screen_text": "Save this for your next idea",
+      "visual": "Point to the save icon, friendly nod."
+    }
+  ],
+  "instagram": {
+    "cover_text": "Test your idea in 48 hours",
+    "caption": "Don't build first. Test first.\n\nThe 48-hour test:\n1. Ask AI for your customer's biggest frustrations, then check them against real reviews\n2. Make a one-page offer: one problem, one promise, one price\n3. Send it to 10 people who fit and ask them to join a waitlist or book a call\n\nA test won't guarantee success, but it can save you months.\n\nSave this for your next idea.",
+    "cta": "Save this for your next idea"
+  },
+  "youtube": {
+    "title": "Test Your Business Idea in 48 Hours (Before You Build It)",
+    "description": "A simple 48-hour test using free AI tools: research real frustrations, make a one-page offer, and ask ten real people. Tests reduce risk; they don't guarantee success.",
+    "cta": "Subscribe for practical AI business tests",
+    "pinned_comment": "What idea would you test first?"
+  },
+  "hashtags": ["#businessidea", "#startup", "#aitools", "#sidehustleuk", "#entrepreneur"],
+  "hashtags_youtube": ["#shorts", "#businessidea", "#startup"],
+  "claims": [
+    {"claim": "Free website builders let you publish a simple one-page site at no cost (e.g. Google Sites)", "source": "https://sites.google.com/", "status": "needs_verification", "note": "Check the free plan of whichever builder you show on screen on the day you film."},
+    {"claim": "AI-generated lists of customer frustrations should be checked against real reviews", "source": "", "status": "opinion", "note": "Responsible-use advice."}
+  ],
+  "disclosure": {"affiliate": false, "sponsored": false, "ai_generated_likeness": true},
+  "thumbnail": {"expression": "focused, pointing at a timer graphic", "colours": "white text, black outline, green accent on '48 hours'"},
+  "research_evidence": [],
+  "verification_note": "Waitlist/call rather than taking pre-payment, to avoid consumer-law issues with selling things that don't exist yet."
+}

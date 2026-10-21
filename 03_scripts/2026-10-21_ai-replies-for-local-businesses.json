@@ -1,0 +1,72 @@
+{
+  "id": "2026-10-21_ai-replies-for-local-businesses",
+  "seed_id": "ai-receptionist-local",
+  "status": "draft",
+  "created": "2026-10-21",
+  "title": "A simple AI service for local businesses",
+  "topic": "Setting up AI chat replies for local businesses that miss enquiries",
+  "category": "ai_business_ideas",
+  "hook_type": "curiosity_gap",
+  "target_audience": "Beginners who want a first AI service to sell",
+  "audience_problem": "They want to sell AI services but don't know what local businesses would pay for",
+  "personal_claims_confirmed": false,
+  "beats": [
+    {
+      "section": "hook",
+      "voiceover": "Your local hairdresser can't answer messages mid-haircut.",
+      "on_screen_text": "Mid-haircut. Phone buzzing.",
+      "visual": "Stock clip: hairdresser cutting hair, phone buzzing on the side."
+    },
+    {
+      "section": "problem",
+      "voiceover": "So enquiries sit there unanswered, and some of those people just book somewhere else.",
+      "on_screen_text": "Unanswered = booked elsewhere",
+      "visual": "Mock message thread with 'Seen' and no reply; clock jumps forward."
+    },
+    {
+      "section": "point",
+      "voiceover": "That's a simple AI service you could learn to offer: an assistant that answers common questions and sends the booking link.",
+      "on_screen_text": "AI that answers + sends the booking link",
+      "visual": "Screen mock-up of a chat assistant answering a price question (fictional business)."
+    },
+    {
+      "section": "point",
+      "voiceover": "Keep it narrow. One type of business, one job: replying to enquiries.",
+      "on_screen_text": "One niche. One job.",
+      "visual": "Talking head, holds up one finger."
+    },
+    {
+      "section": "example",
+      "voiceover": "For a dog groomer, that's answering 'how much for a small dog?' at nine at night, with wording the owner approved.",
+      "on_screen_text": "'How much for a small dog?' - 9pm",
+      "visual": "Phone mock-up at night, message answered instantly; small 'owner-approved' badge."
+    },
+    {
+      "section": "cta",
+      "voiceover": "Follow and I'll show how to set one up, step by step.",
+      "on_screen_text": "Follow for the setup",
+      "visual": "Smile, point to follow."
+    }
+  ],
+  "instagram": {
+    "cover_text": "A simple AI service to sell",
+    "caption": "A simple AI service idea for beginners: help local businesses reply to enquiries when they're busy.\n\nKeep it narrow:\n- one type of business\n- one job: answering common questions and sending the booking link\n- the owner approves every answer\n\nIt takes effort to learn and to find clients - but it's a real problem you can see on any high street.\n\nFollow and I'll show the setup step by step.",
+    "cta": "Follow for the step-by-step setup"
+  },
+  "youtube": {
+    "title": "A Simple AI Service You Could Offer Local Businesses",
+    "description": "Local businesses miss enquiries while they're busy. A narrow AI service: answer common questions and send the booking link, using wording the owner approves. Handle customer data carefully (UK GDPR).",
+    "cta": "Subscribe for the setup video",
+    "pinned_comment": "Which local business would you pick first?"
+  },
+  "hashtags": ["#aibusiness", "#smallbusinessuk", "#aiautomation", "#sidehustleuk", "#chatbot"],
+  "hashtags_youtube": ["#shorts", "#aiautomation", "#smallbusiness"],
+  "claims": [
+    {"claim": "Some customers book elsewhere when enquiries go unanswered", "source": "", "status": "opinion", "note": "Stated as plausible observation, no statistic. Don't add a number without a source."},
+    {"claim": "Businesses handling customer messages must follow UK GDPR", "source": "https://ico.org.uk/for-organisations/", "status": "verified", "note": "General compliance pointer in the YouTube description."}
+  ],
+  "disclosure": {"affiliate": false, "sponsored": false, "ai_generated_likeness": true},
+  "thumbnail": {"expression": "eyebrows raised, holding up a phone", "colours": "white text, black outline, blue accent"},
+  "research_evidence": [],
+  "verification_note": "CTA promises a follow-up video - only use it if you'll make part 2."
+}

@@ -1,0 +1,71 @@
+{
+  "id": "2026-10-21_nobody-wants-to-buy-ai",
+  "seed_id": "mistake-selling-ai",
+  "status": "draft",
+  "created": "2026-10-21",
+  "title": "Nobody wants to buy AI",
+  "topic": "The mistake of selling 'AI' instead of a result",
+  "category": "business_mistakes",
+  "hook_type": "contrarian",
+  "target_audience": "Beginners starting an AI agency or service",
+  "audience_problem": "Business owners don't care about AI, so they get no clients",
+  "personal_claims_confirmed": false,
+  "beats": [
+    {
+      "section": "hook",
+      "voiceover": "Nobody wants to buy AI.",
+      "on_screen_text": "Nobody wants to buy AI",
+      "visual": "Close-up, deadpan delivery, two-second pause feel. Jump cut."
+    },
+    {
+      "section": "problem",
+      "voiceover": "If you're starting an AI service and getting no replies, the word 'AI' might be the problem.",
+      "on_screen_text": "No replies? Check this word.",
+      "visual": "Phone screen showing an outreach message with the word 'AI' highlighted."
+    },
+    {
+      "section": "point",
+      "voiceover": "Business owners don't buy technology. They buy fewer missed calls, faster quotes, or an evening off.",
+      "on_screen_text": "They buy results",
+      "visual": "Three quick text pops: 'fewer missed calls', 'faster quotes', 'an evening off'."
+    },
+    {
+      "section": "point",
+      "voiceover": "So lead with the result. Mention the AI later, if at all.",
+      "on_screen_text": "Result first. Tool later.",
+      "visual": "Talking head, hand gesture moving 'result' to the front."
+    },
+    {
+      "section": "example",
+      "voiceover": "Not 'I build AI chatbots'. Try: 'Every enquiry to your salon gets a reply, even when you're mid-appointment.'",
+      "on_screen_text": "Before vs after",
+      "visual": "Before/after cards: 'I build AI chatbots' (crossed out) vs the salon offer."
+    },
+    {
+      "section": "cta",
+      "voiceover": "Comment your offer and I'll suggest a rewrite.",
+      "on_screen_text": "Comment your offer",
+      "visual": "Smile, point down to comments."
+    }
+  ],
+  "instagram": {
+    "cover_text": "Nobody wants to buy AI",
+    "caption": "Business owners don't buy technology. They buy results.\n\nInstead of: 'I build AI chatbots'\nTry: 'Every enquiry to your salon gets a reply, even when you're mid-appointment.'\n\nDrop your current offer in the comments and I'll suggest a rewrite.",
+    "cta": "Comment your offer and I'll suggest a rewrite"
+  },
+  "youtube": {
+    "title": "Why Nobody Wants to Buy Your AI Service",
+    "description": "The most common mistake when selling AI services: leading with the technology. Lead with the result your customer wants instead.",
+    "cta": "Comment your offer for a rewrite",
+    "pinned_comment": "Paste your offer here and I'll suggest a clearer version."
+  },
+  "hashtags": ["#aiagency", "#smallbusinessuk", "#aibusiness", "#marketingtips"],
+  "hashtags_youtube": ["#shorts", "#aiagency", "#smallbusiness"],
+  "claims": [
+    {"claim": "Business owners care more about results than about the technology", "source": "", "status": "opinion", "note": "General sales principle, presented as opinion."}
+  ],
+  "disclosure": {"affiliate": false, "sponsored": false, "ai_generated_likeness": true},
+  "thumbnail": {"expression": "deadpan, arms folded", "colours": "white text, black outline, red accent on 'AI'"},
+  "research_evidence": [],
+  "verification_note": "Only promise rewrites if you'll actually reply to comments."
+}

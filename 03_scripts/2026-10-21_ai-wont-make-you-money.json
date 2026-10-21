@@ -1,0 +1,82 @@
+{
+  "id": "2026-10-21_ai-wont-make-you-money",
+  "seed_id": "ai-is-not-the-business",
+  "status": "draft",
+  "priority": 1,
+  "created": "2026-10-21",
+  "title": "AI won't make you money. Here's what will.",
+  "topic": "Why AI on its own doesn't make money - problems do",
+  "category": "make_money_with_ai",
+  "hook_type": "contrarian",
+  "target_audience": "Beginners overwhelmed by 'make money with AI' content",
+  "audience_problem": "They keep trying tools and earn nothing because there's no customer or offer",
+  "personal_claims_confirmed": false,
+  "beats": [
+    {
+      "section": "hook",
+      "voiceover": "AI won't make you money. Here's what will.",
+      "on_screen_text": "AI won't make you money",
+      "visual": "Tight close-up, straight to camera, slight lean in. Hard cut on 'Here's what will'."
+    },
+    {
+      "section": "problem",
+      "voiceover": "Most make-money-with-AI videos show you a tool, then skip the hard part: a real person paying you.",
+      "on_screen_text": "The skipped step: someone paying you",
+      "visual": "Quick scroll of generic AI tool logos, blurred (no real brand logos), then back to face."
+    },
+    {
+      "section": "point",
+      "voiceover": "One. Pick a person with a problem. Not 'businesses'. Dog groomers who hate answering messages at night.",
+      "on_screen_text": "1. A person + a problem",
+      "visual": "Text card '1' pops in. Stock clip of a dog groomer at work, phone buzzing on the counter."
+    },
+    {
+      "section": "point",
+      "voiceover": "Two. Sell the result, not the tool. Nobody wakes up wanting AI. They want fewer missed bookings.",
+      "on_screen_text": "2. Sell the result, not the tool",
+      "visual": "Text card '2'. Split screen: 'AI automation' crossed out vs 'fewer missed bookings' highlighted."
+    },
+    {
+      "section": "example",
+      "voiceover": "So instead of 'I do AI automation', try 'I'll make sure every enquiry gets a reply, even after hours.'",
+      "on_screen_text": "'Every enquiry gets a reply'",
+      "visual": "Mock-up of a simple one-line offer on a phone screen (made in Canva, no real business named)."
+    },
+    {
+      "section": "point",
+      "voiceover": "Three. Ask for money early. One paying customer teaches you more than ten new tools.",
+      "on_screen_text": "3. Ask for money early",
+      "visual": "Text card '3'. Back to talking head, finger tap on the word 'early'."
+    },
+    {
+      "section": "cta",
+      "voiceover": "Follow for the honest version of AI side hustles.",
+      "on_screen_text": "Follow for honest AI side hustles",
+      "visual": "Warm smile, small nod, point down to the follow button."
+    }
+  ],
+  "instagram": {
+    "cover_text": "AI won't make you money",
+    "caption": "AI is a speed tool, not a business.\n\nWhat actually gets you paid:\n1. A specific person with a specific problem\n2. An offer that promises a result, not a tool\n3. Asking for payment early\n\nWhich step are you stuck on? Tell me in the comments.\n\nNo income promises here - just the honest version of AI side hustles.",
+    "cta": "Follow for the honest version of AI side hustles"
+  },
+  "youtube": {
+    "title": "AI Won't Make You Money (Do This Instead)",
+    "description": "AI is a speed tool, not a business. The three steps most 'make money with AI' videos skip: pick a person with a problem, sell the result, and ask for money early.\n\nFollow for honest, beginner-friendly AI business ideas. No income promises.",
+    "cta": "Subscribe for the honest version of AI side hustles",
+    "pinned_comment": "Which step are you stuck on - the person, the offer, or asking for money?"
+  },
+  "hashtags": ["#aibusiness", "#sidehustleuk", "#onlinebusiness", "#entrepreneur", "#aitools"],
+  "hashtags_youtube": ["#shorts", "#aibusiness", "#sidehustle"],
+  "claims": [
+    {"claim": "AI tools alone don't create income without a customer and an offer", "source": "", "status": "opinion", "note": "Framed as advice/opinion, not a statistic."},
+    {"claim": "One paying customer teaches you more than ten new tools", "source": "", "status": "opinion", "note": "Opinion - presented as a rule of thumb."}
+  ],
+  "disclosure": {"affiliate": false, "sponsored": false, "ai_generated_likeness": true},
+  "thumbnail": {
+    "expression": "sceptical half-smile, one eyebrow raised",
+    "colours": "white bold text, black outline, yellow accent on 'won't'"
+  },
+  "research_evidence": [],
+  "verification_note": "Opinion piece - no figures. Do not add income examples."
+}

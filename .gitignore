@@ -1,0 +1,18 @@
+# Secrets - never commit
+.env
+*.key
+
+# Large media files (keep them on your computer / cloud drive, not in git)
+06_raw_videos/**/*
+07_edited_videos/**/*
+09_published/**/*.mp4
+09_published/**/*.mov
+*.m4a
+*.wav
+*.mp3
+!**/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.DS_Store

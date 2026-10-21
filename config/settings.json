@@ -1,0 +1,87 @@
+{
+  "_readme": "Reusable settings for the AI Business Influencer Factory. Edit the values, keep the keys. Never put passwords or API keys in this file - use the .env file instead.",
+
+  "creator": {
+    "display_name": "YOUR NAME",
+    "instagram_handle": "@yourhandle",
+    "youtube_handle": "@yourhandle",
+    "country": "UK",
+    "language": "en-GB",
+    "tone": [
+      "plain-spoken and practical",
+      "honest about effort and risk - no hype",
+      "beginner-friendly, explains jargon",
+      "UK English spelling and pounds sterling"
+    ],
+    "true_facts_about_me": [
+      "ADD REAL FACTS ONLY, e.g. 'I am learning AI automation in public', 'I have worked in X for Y years'. Scripts may only reference personal experience listed here."
+    ],
+    "things_i_never_say": [
+      "income guarantees",
+      "fake results or testimonials",
+      "'get rich quick'"
+    ]
+  },
+
+  "script": {
+    "words_per_second": 2.6,
+    "min_seconds": 20,
+    "max_seconds": 45,
+    "target_seconds": 35,
+    "max_hook_words": 12,
+    "min_points": 2,
+    "max_points": 4,
+    "min_hashtags": 3,
+    "max_hashtags": 8
+  },
+
+  "captions": {
+    "max_words_per_cue": 4,
+    "font": "Inter",
+    "font_size": 13,
+    "bold": true,
+    "outline": 2,
+    "margin_v": 75,
+    "uppercase": false
+  },
+
+  "video": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+
+  "higgsfield": {
+    "_note": "Fill these in after the one-time digital twin setup in docs/digital_twin_workflow.md.",
+    "lipsync_model": "wan2_7",
+    "lipsync_model_name": "Wan 2.7 (start image + your audio, up to 15s per clip)",
+    "alt_lipsync_model": "seedance_2_5",
+    "alt_lipsync_model_name": "Seedance 2.5 omni-reference (image + audio references, up to 30s)",
+    "max_segment_seconds": 14,
+    "aspect_ratio": "9:16",
+    "resolution": "1080p",
+    "reference_element_id": "",
+    "soul_id": "",
+    "custom_voice_id": "",
+    "start_image_note": "A sharp, well-lit, front-facing photo of you at chest height, looking at the camera, plain or tidy background, in the outfit you want on screen.",
+    "look": {
+      "setting": "tidy modern home office, bookshelf and plant softly blurred behind",
+      "wardrobe": "plain dark crew-neck t-shirt or overshirt",
+      "lighting": "soft key light from the front-left, gentle rim light, natural skin tones",
+      "camera": "vertical 9:16 medium close-up, chest up, eye-level, phone-camera realism, shallow depth of field"
+    }
+  },
+
+  "publishing": {
+    "platforms": ["instagram", "youtube"],
+    "posting_days": ["Mon", "Wed", "Fri"],
+    "post_time": "18:00",
+    "timezone": "Europe/London",
+    "link_in_bio_url": ""
+  },
+
+  "research": {
+    "graph_api_version": "v23.0",
+    "media_per_creator": 12
+  }
+}

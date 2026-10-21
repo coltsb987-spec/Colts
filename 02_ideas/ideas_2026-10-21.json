@@ -1,0 +1,150 @@
+{
+  "date": "2026-10-21",
+  "ideas": [
+    {
+      "number": 1,
+      "seed_id": "ai-content-repurpose-self",
+      "category": "entrepreneurship_productivity",
+      "topic": "Turning one idea into a week of content with AI",
+      "target_audience": "Small business owners who need to post",
+      "audience_problem": "They don't have time to create content every day",
+      "suggested_hook": "I'd turn one idea into a week of posts like this.",
+      "why_it_may_attract_attention": "Practical; aligns with your own content system (meta, authentic)",
+      "evidence_status": "Hypothesis - no research data logged for this category yet.",
+      "evidence_links": [],
+      "suggested_cta": "Follow and watch me do it with this video",
+      "verification_note": "Framework - no figures"
+    },
+    {
+      "number": 2,
+      "seed_id": "validate-before-build",
+      "category": "make_money_with_ai",
+      "topic": "Testing a business idea in 48 hours with free AI tools before spending money",
+      "target_audience": "Aspiring founders with an idea but no proof",
+      "audience_problem": "They're scared to spend money or months on an idea nobody wants",
+      "suggested_hook": "Most business ideas fail before anyone buys anything.",
+      "why_it_may_attract_attention": "Actionable checklist; strong save potential",
+      "evidence_status": "Hypothesis - no research data logged for this category yet.",
+      "evidence_links": [],
+      "suggested_cta": "Save this for when you get your next idea",
+      "verification_note": "Confirm the tools you name have free tiers before publishing"
+    },
+    {
+      "number": 3,
+      "seed_id": "offer-in-one-sentence",
+      "category": "beginner_tutorials",
+      "topic": "Writing your business offer in one clear sentence",
+      "target_audience": "Beginners who can't explain what they sell",
+      "audience_problem": "People don't understand their offer, so nobody buys",
+      "suggested_hook": "Fill in this one sentence before you start a business.",
+      "why_it_may_attract_attention": "Fill-in-the-blank format invites comments",
+      "evidence_status": "Hypothesis - no research data logged for this category yet.",
+      "evidence_links": [],
+      "suggested_cta": "Comment your sentence below",
+      "verification_note": "Framework - no figures"
+    },
+    {
+      "number": 4,
+      "seed_id": "mistake-tool-hopping",
+      "category": "business_mistakes",
+      "topic": "Tool-hopping: why trying every new AI tool keeps you broke",
+      "target_audience": "People who consume a lot of AI content",
+      "audience_problem": "They feel busy but make no progress",
+      "suggested_hook": "You don't have a tool problem.",
+      "why_it_may_attract_attention": "Relatable; viewers recognise themselves",
+      "evidence_status": "Hypothesis - no research data logged for this category yet.",
+      "evidence_links": [],
+      "suggested_cta": "Share this with someone who has 20 AI tabs open",
+      "verification_note": "Opinion - avoid 'broke' claims about viewers' finances in the final script if it feels judgemental"
+    },
+    {
+      "number": 5,
+      "seed_id": "tool-free-vs-paid",
+      "category": "ai_tools_demos",
+      "topic": "When the free version of an AI tool is enough for a beginner business",
+      "target_audience": "Beginners on a tight budget",
+      "audience_problem": "They think they need to pay for many subscriptions",
+      "suggested_hook": "You don't need to pay for AI tools yet.",
+      "why_it_may_attract_attention": "Money-saving angle; high share potential",
+      "evidence_status": "Hypothesis - no research data logged for this category yet.",
+      "evidence_links": [],
+      "suggested_cta": "Share with a friend starting out",
+      "verification_note": "Free plan limits change often - check each tool's pricing page on the day of filming"
+    },
+    {
+      "number": 6,
+      "seed_id": "case-my-build-in-public",
+      "category": "case_studies",
+      "topic": "Build-in-public update: what I tried this week with AI and what happened",
+      "target_audience": "Followers who want honest progress",
+      "audience_problem": "Most creators only show wins",
+      "suggested_hook": "No fake screenshots - here's my real progress.",
+      "why_it_may_attract_attention": "Authentic, recurring series format; builds trust and return viewers",
+      "evidence_status": "Hypothesis - no research data logged for this category yet.",
+      "evidence_links": [],
+      "suggested_cta": "Follow to see next week's update",
+      "verification_note": "ONLY real events from your week. No invented numbers."
+    },
+    {
+      "number": 7,
+      "seed_id": "ai-receptionist-local",
+      "category": "ai_business_ideas",
+      "topic": "Setting up AI chat replies for local businesses that miss enquiries",
+      "target_audience": "Beginners who want a first AI service to sell",
+      "audience_problem": "They want to sell AI services but don't know what local businesses would actually pay for",
+      "suggested_hook": "The easiest AI service to sell isn't a chatbot for 'everything'.",
+      "why_it_may_attract_attention": "Concrete, local and easy to picture; solves a visible problem rather than selling 'AI'",
+      "evidence_status": "Hypothesis - no research data logged for this category yet.",
+      "evidence_links": [],
+      "suggested_cta": "Follow for the step-by-step setup in the next video",
+      "verification_note": "Do not quote stats on missed calls unless you have a source"
+    },
+    {
+      "number": 8,
+      "seed_id": "ai-cold-outreach",
+      "category": "make_money_with_ai",
+      "topic": "Using AI to personalise outreach without sounding like a robot",
+      "target_audience": "New service sellers",
+      "audience_problem": "Their outreach messages get ignored",
+      "suggested_hook": "Your AI-written messages sound like AI. Fix it like this.",
+      "why_it_may_attract_attention": "Specific pain, quick fix",
+      "evidence_status": "Hypothesis - no research data logged for this category yet.",
+      "evidence_links": [
+        "https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/"
+      ],
+      "suggested_cta": "Save this before your next message",
+      "verification_note": "Remind viewers about UK GDPR/PECR rules for unsolicited marketing emails"
+    },
+    {
+      "number": 9,
+      "seed_id": "mistake-selling-ai",
+      "category": "business_mistakes",
+      "topic": "The mistake of selling 'AI' instead of a result",
+      "target_audience": "Beginners starting an AI agency or service",
+      "audience_problem": "Business owners don't care about AI and they can't get clients",
+      "suggested_hook": "This word is scaring away your clients.",
+      "why_it_may_attract_attention": "Mistake format triggers self-identification; contrarian opening",
+      "evidence_status": "Hypothesis - no research data logged for this category yet.",
+      "evidence_links": [],
+      "suggested_cta": "Follow for more mistakes to avoid",
+      "verification_note": "Opinion - no figures"
+    },
+    {
+      "number": 10,
+      "seed_id": "uk-side-hustle-tax",
+      "category": "beginner_tutorials",
+      "topic": "UK side hustle basics: when you need to tell HMRC",
+      "target_audience": "UK beginners starting a side income",
+      "audience_problem": "They're worried about tax and don't know the rules",
+      "suggested_hook": "When do you need to tell HMRC about side income?",
+      "why_it_may_attract_attention": "Local, useful, high save potential; differentiates as a UK creator",
+      "evidence_status": "Hypothesis - no research data logged for this category yet.",
+      "evidence_links": [
+        "https://www.gov.uk/guidance/tax-free-allowances-on-property-and-trading-income",
+        "https://www.gov.uk/check-if-you-need-tax-return"
+      ],
+      "suggested_cta": "Save this and check gov.uk for your situation",
+      "verification_note": "MUST check current gov.uk guidance on the trading allowance and Self Assessment before filming. Not tax advice."
+    }
+  ]
+}

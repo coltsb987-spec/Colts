@@ -1,0 +1,48 @@
+{
+  "id": "YYYY-MM-DD_short-topic-slug",
+  "seed_id": "",
+  "status": "draft",
+  "created": "YYYY-MM-DD",
+  "title": "Working title",
+  "topic": "",
+  "category": "make_money_with_ai",
+  "hook_type": "contrarian",
+  "target_audience": "",
+  "audience_problem": "",
+  "personal_claims_confirmed": false,
+  "beats": [
+    {"section": "hook", "voiceover": "1-3 second opening line (under 12 words).", "on_screen_text": "", "visual": ""},
+    {"section": "problem", "voiceover": "The problem or curiosity gap.", "on_screen_text": "", "visual": ""},
+    {"section": "point", "voiceover": "Useful point 1.", "on_screen_text": "", "visual": ""},
+    {"section": "point", "voiceover": "Useful point 2.", "on_screen_text": "", "visual": ""},
+    {"section": "example", "voiceover": "A practical example.", "on_screen_text": "", "visual": ""},
+    {"section": "cta", "voiceover": "Closing call to action.", "on_screen_text": "", "visual": ""}
+  ],
+  "instagram": {
+    "cover_text": "",
+    "caption": "",
+    "cta": ""
+  },
+  "youtube": {
+    "title": "",
+    "description": "",
+    "cta": "",
+    "pinned_comment": ""
+  },
+  "hashtags": ["#example", "#example2", "#example3"],
+  "hashtags_youtube": ["#shorts"],
+  "claims": [
+    {"claim": "Any factual statement in the script", "source": "https://...", "status": "needs_verification", "note": ""}
+  ],
+  "disclosure": {
+    "affiliate": false,
+    "sponsored": false,
+    "ai_generated_likeness": true
+  },
+  "thumbnail": {
+    "expression": "curious, slightly raised eyebrow",
+    "colours": "white bold text, black outline, yellow accent on the key word"
+  },
+  "research_evidence": [],
+  "verification_note": ""
+}

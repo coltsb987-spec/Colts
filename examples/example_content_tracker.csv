@@ -1,0 +1,8 @@
+date_published,platform,script_id,topic,category,hook,hook_type,video_length_sec,views,avg_watch_time_sec,completion_rate_pct,likes,comments,shares,saves,profile_visits,followers_gained,link_clicks,conversions,post_url,notes
+2026-10-19,instagram,ex-1,AI won't make you money,make_money_with_ai,AI won't make you money.,contrarian,39,4200,21,,180,32,41,95,60,22,,,,FICTIONAL
+2026-10-19,youtube,ex-1,AI won't make you money,make_money_with_ai,AI won't make you money.,contrarian,39,6100,19,48,150,20,25,,,18,,,,FICTIONAL
+2026-10-21,instagram,ex-2,Nobody wants to buy AI,business_mistakes,Nobody wants to buy AI.,contrarian,29,2600,17,,120,45,30,40,35,12,,,,FICTIONAL
+2026-10-21,youtube,ex-2,Nobody wants to buy AI,business_mistakes,Nobody wants to buy AI.,contrarian,29,3100,15,52,90,15,12,,,8,,,,FICTIONAL
+2026-10-23,instagram,ex-3,AI replies for local businesses,ai_business_ideas,Your hairdresser can't answer mid-haircut.,curiosity_gap,33,18500,7,,300,25,20,30,40,6,4,0,,FICTIONAL - high reach low quality
+2026-10-23,youtube,ex-3,AI replies for local businesses,ai_business_ideas,Your hairdresser can't answer mid-haircut.,curiosity_gap,33,3900,13,38,70,10,9,,,5,,,,FICTIONAL
+2026-10-25,instagram,ex-4,Sell one finished thing,ai_business_ideas,Stop selling your time.,bold_claim,37,3300,20,,160,70,35,120,55,19,12,1,,FICTIONAL

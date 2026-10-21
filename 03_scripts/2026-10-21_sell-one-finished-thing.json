@@ -1,0 +1,77 @@
+{
+  "id": "2026-10-21_sell-one-finished-thing",
+  "seed_id": "productised-ai-service",
+  "status": "draft",
+  "created": "2026-10-21",
+  "title": "Stop selling your time. Sell one finished thing.",
+  "topic": "Turning one skill into a fixed-price AI-assisted service",
+  "category": "ai_business_ideas",
+  "hook_type": "bold_claim",
+  "target_audience": "Employees with a skill who want a side income",
+  "audience_problem": "They have a skill but freelancing feels vague and hard to price",
+  "personal_claims_confirmed": false,
+  "beats": [
+    {
+      "section": "hook",
+      "voiceover": "Stop selling your time. Sell one finished thing.",
+      "on_screen_text": "Sell one finished thing",
+      "visual": "Close-up, confident; on 'finished thing' cut to a neat package icon."
+    },
+    {
+      "section": "problem",
+      "voiceover": "'I can help with marketing' is vague. Vague offers are hard to price and hard to say yes to.",
+      "on_screen_text": "Vague = hard to buy",
+      "visual": "Fuzzy, blurred text 'I can help with marketing' that sharpens into a clear offer."
+    },
+    {
+      "section": "point",
+      "voiceover": "Pick one task you're already good at, like writing product descriptions.",
+      "on_screen_text": "1. One task you're good at",
+      "visual": "Text card '1', screen of an online shop product page."
+    },
+    {
+      "section": "point",
+      "voiceover": "Package it: a fixed amount, a fixed price, a fixed delivery time.",
+      "on_screen_text": "2. Fixed amount, price, time",
+      "visual": "Three boxes tick on screen."
+    },
+    {
+      "section": "point",
+      "voiceover": "Use AI for the first draft, then your skill to edit, check and personalise. That's what people pay for.",
+      "on_screen_text": "3. AI drafts. You make it good.",
+      "visual": "Screen recording: AI draft appears, then manual edits highlighted."
+    },
+    {
+      "section": "example",
+      "voiceover": "Twenty product descriptions for your shop, delivered in three days, one fixed price. Easy to say yes to.",
+      "on_screen_text": "20 descriptions. 3 days. 1 price.",
+      "visual": "Simple offer card mock-up."
+    },
+    {
+      "section": "cta",
+      "voiceover": "Comment your skill and I'll suggest a package.",
+      "on_screen_text": "Comment your skill",
+      "visual": "Smile, point to comments."
+    }
+  ],
+  "instagram": {
+    "cover_text": "Stop selling your time",
+    "caption": "Vague offers are hard to buy. Packaged offers are easy to say yes to.\n\n1. Pick one task you're already good at\n2. Fix the amount, the price and the delivery time\n3. Let AI draft - your skill makes it good (and be upfront with clients about how you work)\n\nComment your skill and I'll suggest a package.",
+    "cta": "Comment your skill and I'll suggest a package"
+  },
+  "youtube": {
+    "title": "Turn One Skill Into a Fixed-Price AI-Assisted Service",
+    "description": "How to package a skill into one clear, fixed-price service: one task, fixed scope, fixed price, fixed delivery time. AI drafts, you edit and check.",
+    "cta": "Comment your skill for a package idea",
+    "pinned_comment": "Tell me your skill and I'll suggest a package."
+  },
+  "hashtags": ["#freelancing", "#sidehustleuk", "#aitools", "#productisedservice"],
+  "hashtags_youtube": ["#shorts", "#freelancing", "#sidehustle"],
+  "claims": [
+    {"claim": "Clear, fixed-scope offers are easier for customers to buy than vague ones", "source": "", "status": "opinion", "note": "Sales principle stated as opinion."}
+  ],
+  "disclosure": {"affiliate": false, "sponsored": false, "ai_generated_likeness": true},
+  "thumbnail": {"expression": "confident, holding a small box", "colours": "white text, black outline, orange accent"},
+  "research_evidence": [],
+  "verification_note": "If selling on freelance marketplaces, check their rules on AI-assisted work."
+}
