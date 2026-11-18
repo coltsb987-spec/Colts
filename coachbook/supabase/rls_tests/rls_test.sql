@@ -96,9 +96,13 @@ reset request.jwt.claim.sub;
 set role anon;
 select pg_temp.check((select count(*) from public_coaches)=1, 'anon sees published coach via view');
 select pg_temp.check((select count(*) from services)=1, 'anon sees only published coach services');
-select pg_temp.check((select count(*) from coaches)=0, 'anon gets no rows from coaches table');
-select pg_temp.check((select count(*) from players)=0, 'anon gets no rows from players');
-select pg_temp.check((select count(*) from bookings)=0, 'anon gets no rows from bookings');
+select pg_temp.refused($$select * from coaches$$, 'anon cannot read coaches table');
+select pg_temp.refused($$select * from players$$, 'anon cannot read players');
+select pg_temp.refused($$select * from bookings$$, 'anon cannot read bookings');
+select pg_temp.refused($$select * from messages$$, 'anon cannot read messages');
 select pg_temp.refused($$insert into services (coach_id, name, type, duration_minutes, price_pence) select id,'x','group',60,1 from public_coaches$$, 'anon cannot insert');
+reset role;
+set role service_role;
+select pg_temp.check((select count(*) from bookings)=1, 'server (secret key) can read bookings');
 reset role;
 \echo 'ALL RLS TESTS PASSED'

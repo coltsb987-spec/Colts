@@ -9,6 +9,6 @@ create function auth.uid() returns uuid language sql stable as
   $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 grant usage on schema auth, public to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
--- Supabase's default: API roles get table privileges, RLS decides row access.
-alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+-- Like newer Supabase projects: NO automatic table privileges for the API roles,
+-- and functions are not executable by everyone. Migrations must grant explicitly.
+alter default privileges in schema public revoke execute on functions from public;
