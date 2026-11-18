@@ -59,6 +59,7 @@ export const coachProfileSchema = z
     postcode: optionalText(10).refine((v) => v === null || UK_POSTCODE.test(v), "Enter a valid UK postcode"),
     qualifications: optionalText(1000),
     dbs_checked: z.boolean(),
+    booking_notice_hours: z.coerce.number().int().min(0).max(168),
     dbs_date: z
       .string()
       .trim()

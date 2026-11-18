@@ -16,6 +16,9 @@ export type Coach = {
   dbs_date: string | null;
   published: boolean;
   subscription_status: string;
+  booking_notice_hours: number;
+  stripe_account_id: string | null;
+  stripe_charges_enabled: boolean;
 };
 
 export type PublicCoach = Pick<

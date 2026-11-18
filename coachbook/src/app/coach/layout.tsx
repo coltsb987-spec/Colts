@@ -4,9 +4,11 @@ import { requireRole } from "@/lib/auth";
 
 const links = [
   { href: "/coach", label: "Overview" },
+  { href: "/coach/bookings", label: "Bookings" },
   { href: "/coach/profile", label: "Profile" },
   { href: "/coach/services", label: "Sessions & prices" },
   { href: "/coach/availability", label: "Availability" },
+  { href: "/coach/payments", label: "Payments" },
 ];
 
 export default async function CoachLayout({ children }: { children: ReactNode }) {

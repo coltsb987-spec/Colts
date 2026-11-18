@@ -75,7 +75,7 @@ export default async function ParentHome({ searchParams }: { searchParams: Promi
 
       <Card className="mt-6 bg-white/50">
         <h2 className="font-semibold">Booking sessions</h2>
-        <p className="mt-1 text-sm text-ink-soft">Online booking and payment is coming soon. Your coach will share their CoachBook link with you.</p>
+        <p className="mt-1 text-sm text-ink-soft">Open your coach&apos;s CoachBook link, choose a session and a time, and pay securely online.</p>
       </Card>
     </>
   );

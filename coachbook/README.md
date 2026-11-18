@@ -3,9 +3,12 @@
 A booking platform for UK football coaches, with an AI receptionist (coming in Phase 3).
 Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
 
-**Status: Phase 1 (Foundations) is done.** Coaches can sign up, build a profile, add sessions and prices,
-set weekly hours and holidays, and publish a public page at `/<their-link>`. Parents can sign up and add players.
-Online booking and payments come in Phase 2.
+**Status: Phases 1 and 2 are done.**
+- **Phase 1:** coaches sign up, build a profile, add sessions and prices, set weekly hours and holidays, and publish
+  a public page at `/<their-link>`. Parents sign up and add players.
+- **Phase 2:** parents book and pay online. Coaches connect their own Stripe account and get paid directly. Coaches
+  see upcoming sessions and earnings, can cancel (with automatic refund) or move sessions, and can start the
+  £40/month plan with a free trial. Confirmation emails and day-before reminders are sent too.
 
 ## What's where
 
@@ -19,7 +22,13 @@ Online booking and payments come in Phase 2.
 | `src/app/parent` | Parent area: manage players (with consent) |
 | `src/app/[slug]` | Public coach booking page |
 | `src/lib/validation.ts` | Form rules (prices, postcodes, booking links, times) |
-| `scripts/e2e-phase1.mjs` | Clicks through the whole Phase 1 flow in a real browser |
+| `src/lib/slots.ts` | Slot engine: weekly hours + holidays + bookings → free times (UK time, clock changes) |
+| `src/lib/bookings.ts` | Confirm, cancel (with refund), reschedule, emails |
+| `src/app/[slug]/book/[serviceId]` | Parent booking flow → Stripe Checkout |
+| `src/app/coach/bookings`, `src/app/coach/payments` | Coach bookings, earnings, Stripe and plan |
+| `src/app/api/stripe/webhook` | Stripe events (payments, subscriptions) |
+| `src/app/api/cron/reminders` | Daily reminder emails (Vercel Cron, see `vercel.json`) |
+| `scripts/e2e-phase1.mjs`, `scripts/e2e-phase2.mjs` | Click through each phase in a real browser |
 
 ## Run it on your computer
 
@@ -58,7 +67,8 @@ Sign-in emails don't really get sent locally. Open the test inbox at **http://12
 ```bash
 npm test          # unit tests (form rules, prices, links)
 npm run test:db   # security tests for every table (needs PostgreSQL installed locally; no Docker needed)
-npm run test:e2e  # full browser walk-through (needs db:start + dev running)
+npm run test:e2e  # Phase 1 browser walk-through (needs db:start + dev running)
+node scripts/e2e-phase2.mjs   # Phase 2: booking, Stripe Checkout, webhooks (needs Stripe test keys)
 npm run lint && npm run typecheck && npm run build
 ```
 
@@ -69,10 +79,26 @@ npm run lint && npm run typecheck && npm run build
 - Coaches can't change their own Stripe account, subscription status or role. Only the server can.
 - Nobody can make themselves an admin at sign-up.
 - The public page reads from a `public_coaches` view. It shows the postcode area only (e.g. "M14"), never the full postcode.
-- Parent bookings, payments and AI messages will be written server-side (Phase 2/3), never directly from the browser.
+- Bookings are created and changed only on the server, through database functions. The database itself refuses
+  double-bookings, using an exclusion constraint.
+- Payments are "direct charges": each coach has their own Stripe account, and Stripe (not CoachBook) handles
+  disputes and losses. Stripe webhooks are signature-checked and processed once only.
+- If a refund fails, the booking is not cancelled, so a parent never loses money.
 - DBS status is shown as "coach-declared" until there's an admin verification step.
 
-## Next: Phase 2
+## How payments work
 
-Slot engine plus a double-booking database constraint, the parent booking flow, Stripe Connect and Billing,
-webhooks, confirmation and reminder emails, and the coach dashboard for upcoming sessions and earnings.
+1. **A coach connects Stripe.** They click Payments → Connect Stripe and fill in Stripe's form. They get a full
+   Stripe account of their own.
+2. **A parent books.** The time is held for 35 minutes while they pay on Stripe Checkout. The money goes straight
+   to the coach's Stripe account. An optional CoachBook fee can be taken with `PLATFORM_FEE_PERCENT`.
+3. **The booking is confirmed** when Stripe reports the payment. This happens via the webhook, or straight away
+   when the parent returns from Stripe, whichever comes first. If the parent leaves without paying, the time is
+   released.
+4. **Coach plan.** Pilot coaches can take bookings for free. "Start plan" begins the £40/month subscription with a
+   free trial (`SUBSCRIPTION_TRIAL_DAYS`), and no card is needed to start.
+
+## Next: Phase 3
+
+The AI receptionist: a web chat widget, Claude tool use for availability and bookings, coach tone, FAQs and rules,
+hand-off to the coach, and a conversation log.

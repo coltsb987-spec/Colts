@@ -38,6 +38,7 @@ export async function saveProfile(_prev: ActionState, formData: FormData): Promi
     qualifications: formData.get("qualifications") ?? "",
     dbs_checked: formData.get("dbs_checked") === "on",
     dbs_date: formData.get("dbs_date") ?? "",
+    booking_notice_hours: formData.get("booking_notice_hours") ?? 12,
   });
   if (!parsed.success) return { error: firstError(parsed.error) };
   const values: Record<string, unknown> = { ...parsed.data, postcode: parsed.data.postcode?.toUpperCase() ?? null };

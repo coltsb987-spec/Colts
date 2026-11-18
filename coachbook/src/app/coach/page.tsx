@@ -27,9 +27,10 @@ export default async function CoachHome() {
     );
   }
 
-  const [{ count: services }, { count: rules }] = await Promise.all([
+  const [{ count: services }, { count: rules }, { count: upcoming }] = await Promise.all([
     supabase.from("services").select("id", { count: "exact", head: true }).eq("coach_id", coach.id).eq("active", true),
     supabase.from("availability_rules").select("id", { count: "exact", head: true }).eq("coach_id", coach.id),
+    supabase.from("bookings").select("id", { count: "exact", head: true }).eq("coach_id", coach.id).eq("status", "confirmed").gte("start_at", new Date().toISOString()),
   ]);
 
   const steps = [
@@ -37,6 +38,7 @@ export default async function CoachHome() {
     { done: Boolean(coach.photo_url && coach.bio), label: "Add a photo and bio", href: "/coach/profile" },
     { done: Boolean(services), label: "Add sessions and prices", href: "/coach/services" },
     { done: Boolean(rules), label: "Set your weekly availability", href: "/coach/availability" },
+    { done: coach.stripe_charges_enabled, label: "Connect Stripe to get paid", href: "/coach/payments" },
     { done: coach.published, label: "Publish your booking page", href: "/coach" },
   ];
   const ready = Boolean(services && rules);
@@ -92,13 +94,20 @@ export default async function CoachHome() {
         </Card>
       </div>
 
-      <Card className="mt-4 bg-white/50">
-        <h2 className="font-semibold">Coming next</h2>
-        <p className="mt-1 text-sm text-ink-soft">
-          Online booking and payments (Stripe), your upcoming sessions and earnings, and an AI receptionist that answers
-          parents&apos; questions for you.
-        </p>
-      </Card>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <Card>
+          <h2 className="font-semibold">Upcoming sessions</h2>
+          <p className="mt-1 text-3xl font-semibold tabular-nums">{upcoming ?? 0}</p>
+          <Link href="/coach/bookings" className="mt-2 inline-block text-sm font-medium underline underline-offset-4">See bookings and earnings</Link>
+        </Card>
+        {!coach.stripe_charges_enabled && (
+          <Card className="bg-white/50">
+            <h2 className="font-semibold">Get paid online</h2>
+            <p className="mt-1 text-sm text-ink-soft">Connect Stripe so parents can book paid sessions. Free sessions can be booked already.</p>
+            <ButtonLink href="/coach/payments" variant="secondary" className="mt-3">Set up payments</ButtonLink>
+          </Card>
+        )}
+      </div>
     </>
   );
 }

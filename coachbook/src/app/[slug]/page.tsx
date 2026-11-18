@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { Badge, Card, Logo } from "@/components/ui";
+import { Badge, ButtonLink, Card, Logo } from "@/components/ui";
+import { bookability, loadCoach } from "@/lib/bookings";
 import { formatDate, formatDuration, formatPrice, formatTime, postcodeArea, SERVICE_TYPE_LABELS, WEEKDAY_ORDER, WEEKDAYS } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import type { AvailabilityRule, PublicCoach, Service } from "@/lib/types";
@@ -31,6 +32,11 @@ export default async function CoachPublicPage({ params }: { params: Promise<{ sl
     supabase.from("availability_rules").select("*").eq("coach_id", coach.id).order("start_time"),
   ]);
   const services = (svc ?? []) as Service[];
+  // If the server isn't fully configured yet, still show the page (just without Book buttons).
+  const bookingCoach = await loadCoach(coach.id).catch((e) => {
+    console.error("booking status unavailable", e);
+    return null;
+  });
   const rules = (rul ?? []) as AvailabilityRule[];
   const area = postcodeArea(coach.postcode);
 
@@ -90,9 +96,11 @@ export default async function CoachPublicPage({ params }: { params: Promise<{ sl
                             {formatPrice(s.price_pence)}
                             {s.type !== "one_to_one" && s.price_pence > 0 && <span className="text-sm font-normal text-ink-soft"> /player</span>}
                           </p>
-                          <button disabled className="cursor-not-allowed rounded-full bg-lime/50 px-4 py-2 text-sm font-semibold text-ink/60" title="Online booking is coming soon">
-                            Booking soon
-                          </button>
+                          {bookingCoach && bookability(bookingCoach, s).ok ? (
+                            <ButtonLink href={`/${coach.slug}/book/${s.id}`}>Book</ButtonLink>
+                          ) : (
+                            <span className="rounded-full bg-ink/5 px-4 py-2 text-sm font-medium text-ink-soft">Booking soon</span>
+                          )}
                         </div>
                       </Card>
                     </li>
@@ -131,7 +139,7 @@ export default async function CoachPublicPage({ params }: { params: Promise<{ sl
                   );
                 })}
               </ul>
-              <p className="mt-3 text-xs text-ink-soft">UK time. Online booking and payment is coming soon.</p>
+              <p className="mt-3 text-xs text-ink-soft">UK time. Pick a session to see free times.</p>
             </Card>
             <p className="mt-4 px-1 text-xs text-ink-soft">
               {coach.business_name} is an independent coach. CoachBook UK provides the booking system and is not the coach&apos;s employer.

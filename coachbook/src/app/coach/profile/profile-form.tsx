@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ActionForm } from "@/components/action-form";
-import { Field, Input, Textarea } from "@/components/ui";
+import { Field, Input, Select, Textarea } from "@/components/ui";
 import type { Coach, Profile } from "@/lib/types";
 import { slugify } from "@/lib/validation";
 import { saveProfile } from "../actions";
@@ -95,6 +95,14 @@ export function ProfileForm({ coach, profile }: { coach: Coach | null; profile: 
           <Input name="postcode" maxLength={10} defaultValue={coach?.postcode ?? ""} autoComplete="postal-code" className="uppercase" />
         </Field>
       </section>
+
+      <Field label="Minimum notice for bookings" hint="Parents can't book a session starting sooner than this." className="max-w-sm">
+        <Select name="booking_notice_hours" defaultValue={String(coach?.booking_notice_hours ?? 12)}>
+          {[[0, "No minimum"], [2, "2 hours"], [6, "6 hours"], [12, "12 hours"], [24, "24 hours"], [48, "2 days"], [72, "3 days"], [168, "1 week"]].map(([v, l]) => (
+            <option key={v} value={v}>{l}</option>
+          ))}
+        </Select>
+      </Field>
 
       <section className="rounded-2xl border border-sage-line bg-white/60 p-4">
         <label className="flex items-start gap-3">

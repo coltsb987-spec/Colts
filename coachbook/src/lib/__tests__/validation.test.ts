@@ -53,6 +53,7 @@ describe("coachProfileSchema", () => {
     qualifications: "",
     dbs_checked: false,
     dbs_date: "",
+    booking_notice_hours: "12",
   };
   it("accepts a valid profile and turns blanks into null", () => {
     const r = coachProfileSchema.parse(base);

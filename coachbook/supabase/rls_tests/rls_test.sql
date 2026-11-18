@@ -105,4 +105,45 @@ reset role;
 set role service_role;
 select pg_temp.check((select count(*) from bookings)=1, 'server (secret key) can read bookings');
 reset role;
+
+-- ===== Phase 2: double-booking protection =====
+-- coach A: 1-to-1 '1-to-1' (60 min) already booked 2026-12-07 16:00-17:00 UTC
+select pg_temp.refused($$select book_slot((select id from services where name='1-to-1'), '2026-12-07 16:30+00', null, null, 'web', 'pending', 30, 0)$$,
+  'overlapping 1-to-1 booking rejected by database');
+select pg_temp.check(book_slot((select id from services where name='1-to-1'), '2026-12-07 17:00+00', null, null, 'web', 'pending', 30, 0) is not null,
+  'back-to-back booking allowed');
+-- group session, capacity 2
+insert into services (coach_id, name, type, duration_minutes, price_pence, max_participants)
+  select id, 'A group', 'group', 60, 1000, 2 from coaches where slug='a-football';
+select book_slot((select id from services where name='A group'), '2026-12-08 16:00+00', null, null, 'web', 'confirmed', 30, 0);
+select book_slot((select id from services where name='A group'), '2026-12-08 16:00+00', null, null, 'web', 'confirmed', 30, 0);
+select pg_temp.check((select count(*) from bookings where slot_key like '%@2026-12-08T16:00:00Z')=2, 'two players share one group session');
+select pg_temp.refused($$select book_slot((select id from services where name='A group'), '2026-12-08 16:00+00', null, null, 'web', 'confirmed', 30, 0)$$,
+  'third player rejected when group is full');
+select pg_temp.refused($$select book_slot((select id from services where name='1-to-1'), '2026-12-08 16:30+00', null, null, 'web', 'pending', 30, 0)$$,
+  '1-to-1 cannot overlap a group session');
+-- expired hold frees the slot
+update bookings set hold_expires_at = now() - interval '1 minute' where start_at = '2026-12-07 17:00+00';
+select pg_temp.check(book_slot((select id from services where name='1-to-1'), '2026-12-07 17:00+00', null, null, 'web', 'pending', 30, 0) is not null,
+  'expired unpaid hold releases the slot');
+-- reschedule into a clash is rejected; into a free time works
+select pg_temp.refused($$select reschedule_booking((select id from bookings where start_at='2026-12-07 16:00+00' and status='pending' limit 1), '2026-12-07 17:30+00')$$,
+  'reschedule into a clash rejected');
+select reschedule_booking((select id from bookings where start_at='2026-12-07 16:00+00' and status='pending' limit 1), '2026-12-09 10:00+00');
+select pg_temp.check((select count(*) from bookings where start_at='2026-12-09 10:00+00')=1, 'reschedule to a free time works');
+
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.refused($$update bookings set status='cancelled'$$, 'coach cannot change bookings directly (server does refunds)');
+select pg_temp.refused($$select book_slot((select id from services where name='1-to-1'), '2026-12-20 10:00+00', null, null, 'web', 'confirmed', 30, 0)$$,
+  'signed-in users cannot call book_slot');
+select pg_temp.refused($$update coaches set stripe_charges_enabled = true$$, 'coach cannot mark own Stripe as enabled');
+update coaches set booking_notice_hours = 24;
+select pg_temp.check((select booking_notice_hours from coaches)=24, 'coach can set booking notice');
+set role anon;
+select pg_temp.refused($$select * from stripe_events$$, 'anon cannot read stripe events');
+reset role;
+select pg_temp.refused($$delete from services where name='1-to-1'$$, 'session type with bookings cannot be deleted');
+delete from auth.users where id = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.check((select count(*) from coaches where slug='a-football')=0, 'deleting a coach account removes their data');
 \echo 'ALL RLS TESTS PASSED'
