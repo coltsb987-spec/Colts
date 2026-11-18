@@ -81,7 +81,8 @@ async function signIn(page, as, email, name) {
   await page.waitForURL(`${APP}/${as}**`);
 }
 
-const browser = await chromium.launch();
+// Set E2E_BROWSER_PROXY when the browser must go through an HTTP proxy to reach a deployed site.
+const browser = await chromium.launch(process.env.E2E_BROWSER_PROXY ? { proxy: { server: process.env.E2E_BROWSER_PROXY } } : {});
 try {
   // ---------- Coach ----------
   const coachCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -186,6 +187,12 @@ try {
   if ((await pub.getByText("6HR").count()) !== 0) fail("full postcode leaked");
   await pub.getByText("DBS checked").waitFor();
   await pub.getByText("09:00–13:00").waitFor();
+  const photoOk = await pub.locator("main img").first().evaluate(async (img) => {
+    if (!img.complete) await new Promise((r) => { img.onload = img.onerror = r; });
+    return img.naturalWidth > 0;
+  });
+  if (!photoOk) fail("coach photo did not load on public page");
+  ok("coach photo displays on public page");
   ok("public booking page shows services, area only (not full postcode), DBS");
   await shot(pub, "08-public-page-mobile");
   const desktop = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
