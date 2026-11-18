@@ -1,5 +1,9 @@
 // End-to-end check of Phase 1 against LOCAL Supabase (npx supabase start) and `npm run dev`.
 // Uses Mailpit (local test inbox) to click the magic links. Run: node scripts/e2e-phase1.mjs [screenshot-dir]
+//
+// Against a HOSTED project (no inbox to read): set E2E_ADMIN_LINKS=1 plus NEXT_PUBLIC_SUPABASE_URL and
+// SUPABASE_SECRET_KEY. Sign-in links are then made with the admin API (no email sent) and the test
+// users, with everything they created, are deleted at the end.
 import { createRequire } from "node:module";
 // Uses the project copy of playwright if installed, otherwise a globally installed one.
 const { chromium } = createRequire(import.meta.url)("playwright");
@@ -32,7 +36,42 @@ async function magicLink(email) {
   fail(`no magic link email for ${email}`);
 }
 
+const ADMIN = process.env.E2E_ADMIN_LINKS === "1";
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SB_SECRET = process.env.SUPABASE_SECRET_KEY;
+const adminHeaders = { apikey: SB_SECRET, Authorization: `Bearer ${SB_SECRET}`, "Content-Type": "application/json" };
+const createdUsers = [];
+
+async function adminSignIn(page, as, email, name) {
+  const res = await fetch(`${SB_URL}/auth/v1/admin/generate_link`, {
+    method: "POST",
+    headers: adminHeaders,
+    body: JSON.stringify({ type: "magiclink", email, data: { role: as, full_name: name } }),
+  });
+  const body = await res.json();
+  if (!res.ok) fail(`generate_link: ${JSON.stringify(body)}`);
+  createdUsers.push(body.id ?? body.user?.id);
+  const token = body.hashed_token ?? body.properties?.hashed_token;
+  await page.goto(`${APP}/auth/confirm?next=/${as}&token_hash=${token}&type=email`);
+  await page.waitForURL(`${APP}/${as}**`);
+}
+
+async function cleanup() {
+  if (!ADMIN) return;
+  for (const id of createdUsers.filter(Boolean)) {
+    // remove uploaded photos, then the user (database rows cascade)
+    const list = await (await fetch(`${SB_URL}/storage/v1/object/list/coach-photos`, {
+      method: "POST", headers: adminHeaders, body: JSON.stringify({ prefix: `${id}/` }),
+    })).json();
+    const files = Array.isArray(list) ? list.map((f) => `${id}/${f.name}`) : [];
+    if (files.length) await fetch(`${SB_URL}/storage/v1/object/coach-photos`, { method: "DELETE", headers: adminHeaders, body: JSON.stringify({ prefixes: files }) });
+    const del = await fetch(`${SB_URL}/auth/v1/admin/users/${id}`, { method: "DELETE", headers: adminHeaders });
+    console.log(`cleanup - deleted test user ${id.slice(0, 8)}… (${del.status}), ${files.length} photo(s)`);
+  }
+}
+
 async function signIn(page, as, email, name) {
+  if (ADMIN) return adminSignIn(page, as, email, name);
   await page.goto(`${APP}/login?as=${as}`);
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="full_name"]', name);
@@ -55,7 +94,7 @@ try {
   await shot(page, "02-login");
 
   await signIn(page, "coach", coachEmail, "Sam Patel");
-  ok("coach signed in with magic link");
+  ok(`coach signed in with ${ADMIN ? "admin-generated" : "emailed"} magic link`);
   await shot(page, "03-coach-welcome");
 
   await page.goto(`${APP}/coach/profile`);
@@ -159,7 +198,7 @@ try {
   const parentCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const pp = await parentCtx.newPage();
   await signIn(pp, "parent", parentEmail, "Alex Jones");
-  ok("parent signed in with magic link");
+  ok(`parent signed in with ${ADMIN ? "admin-generated" : "emailed"} magic link`);
   await pp.fill('input[name="first_name"]', "Leo");
   await pp.selectOption('select[name="age_group"]', "U10");
   await pp.click('button:has-text("Add player")');
@@ -184,4 +223,5 @@ try {
   console.log("ALL E2E CHECKS PASSED");
 } finally {
   await browser.close();
+  await cleanup();
 }
