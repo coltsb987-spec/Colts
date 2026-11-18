@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* CoachBook UK palette (build plan: "Design and colours").
+   Lime is reserved for main buttons, selected slots and key highlights. */
+@theme {
+  --color-canvas: #f7f8f4;     /* page background: soft off-white */
+  --color-sage: #e6ede4;       /* cards and surfaces: pale sage */
+  --color-sage-line: #cfd9cc;  /* borders on sage */
+  --color-ink: #222622;        /* text: dark charcoal */
+  --color-ink-soft: #545b54;   /* secondary text */
+  --color-lime: #d4ff3a;       /* accent */
+  --color-lime-deep: #b8e62a;  /* accent hover */
+  --color-danger: #a32a1f;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}

@@ -1,0 +1,13 @@
+<!-- CoachBook UK sign-in email. Paste this into Supabase: Authentication -> Emails -> Templates
+     (both "Magic link" and "Confirm signup"). The link goes to /auth/confirm, which works on any device. -->
+<div style="font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#F7F8F4; padding:32px; color:#222622;">
+  <div style="max-width:480px; margin:0 auto; background:#E6EDE4; border-radius:16px; padding:28px;">
+    <h2 style="margin:0 0 12px;">Sign in to CoachBook UK</h2>
+    <p style="margin:0 0 20px;">Tap the button below to sign in. This link works once and expires soon.</p>
+    <a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email"
+       style="display:inline-block; background:#D4FF3A; color:#222622; font-weight:600; text-decoration:none; padding:12px 22px; border-radius:999px;">
+      Sign in
+    </a>
+    <p style="margin:20px 0 0; font-size:13px; color:#545b54;">If you didn't ask for this, you can ignore this email.</p>
+  </div>
+</div>
