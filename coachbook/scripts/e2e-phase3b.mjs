@@ -65,8 +65,12 @@ try {
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/p3b-02-review.png`, fullPage: true });
   ok("answering the question updates the draft (price £30); DBS is flagged for the coach to tick themselves");
 
-  // Use the screenshot as the profile photo: zoom in and drag
-  await page.getByRole("radio", { name: "Use screenshot 1 for my photo" }).click();
+  // Claude's suggested profile picture is pre-selected and framed
+  if ((await page.getByRole("radio", { name: "Use screenshot 1 for my photo" }).getAttribute("aria-checked")) !== "true") fail("found photo not pre-selected");
+  await page.getByText("We've framed the profile picture we found").waitFor();
+  if (Number(await page.getByLabel("Zoom").inputValue()) <= 1) fail("found photo not zoomed in");
+  ok("the profile picture Claude found is pre-selected and the crop is zoomed onto it");
+  // ...and the coach can still adjust it: zoom and drag
   const crop = page.getByRole("img", { name: /Photo crop area/ });
   await crop.waitFor();
   await page.getByLabel("Zoom").fill("2.5");

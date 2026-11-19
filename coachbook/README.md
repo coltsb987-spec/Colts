@@ -21,7 +21,8 @@ Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
   edits and ticks what to keep; nothing is saved until they confirm. Unreadable links (Instagram often blocks) are
   explained in plain words, with the text and screenshot options offered instead. Publishing needs only a name, one
   session and some hours; the photo, qualifications, DBS and Stripe come later from the checklist. The DBS box is
-  never ticked for the coach. The coach can crop one of their screenshots into a square profile photo.
+  never ticked for the coach. If a screenshot shows the coach's own profile picture, Claude finds it and the
+  photo crop is pre-framed on it; the coach can adjust it, pick another screenshot or choose no photo.
 
 ## What's where
 

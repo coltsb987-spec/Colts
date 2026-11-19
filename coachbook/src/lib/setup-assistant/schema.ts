@@ -38,6 +38,16 @@ export const profileDraftSchema = z.object({
   questions: z
     .array(z.object({ id: z.string(), question: z.string() }))
     .describe("Up to 5 short questions about essential missing details (e.g. prices, hours, session length). Empty if nothing essential is missing."),
+  profile_photo: z
+    .object({
+      screenshot: z.number().int().describe("Which screenshot it's in, counting from 1 in the order sent."),
+      left: z.number().describe("Left edge of the picture as a fraction of the screenshot's width (0 to 1)."),
+      top: z.number().describe("Top edge as a fraction of the screenshot's height (0 to 1)."),
+      width: z.number().describe("Width as a fraction of the screenshot's width."),
+      height: z.number().describe("Height as a fraction of the screenshot's height."),
+    })
+    .nullable()
+    .describe("Where the coach's own profile picture (usually the round photo at the top of an Instagram or Facebook profile) is in the screenshots. null if there are no screenshots, you can't find one, or the only photos show children or players."),
   notes: z.array(z.string()).describe("Short notes for the coach: links that couldn't be read, things left out, assumptions to check."),
 });
 

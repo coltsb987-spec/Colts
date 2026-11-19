@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { InlineAction } from "@/components/action-form";
-import { PhotoCropper } from "@/components/photo-cropper";
+import { PhotoCropper, type CropBox } from "@/components/photo-cropper";
 import { Button, ButtonLink, Card, Field, Input, Select, Textarea } from "@/components/ui";
 import { WEEKDAY_ORDER, WEEKDAYS } from "@/lib/format";
 import type { ProfileDraft } from "@/lib/setup-assistant/schema";
@@ -74,6 +74,7 @@ export function SetupFlow({ hasProfile }: { hasProfile: boolean }) {
   const [faqs, setFaqs] = useState<Faq[]>([]);
   const [photoFrom, setPhotoFrom] = useState<number | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [suggestedBox, setSuggestedBox] = useState<CropBox | null>(null);
 
   function loadDraft(d: ProfileDraft) {
     setDraft(d);
@@ -89,6 +90,15 @@ export function SetupFlow({ hasProfile }: { hasProfile: boolean }) {
     setServices(d.services.map((s) => ({ ...s, keep: true, priceText: s.price_pounds == null ? "" : String(s.price_pounds) })));
     setHours(d.weekly_hours.map((h) => ({ ...h, keep: true })));
     setFaqs(d.faqs.map((f) => ({ ...f, keep: true })));
+    // Claude found the coach's profile picture in a screenshot: pick it and frame it.
+    const p = d.profile_photo;
+    const ok = p && p.screenshot >= 1 && p.screenshot <= shots.length && [p.left, p.top, p.width, p.height].every((n) => n >= 0 && n <= 1) && p.width > 0.01 && p.height > 0.01;
+    if (ok) {
+      setPhotoFrom(p.screenshot - 1);
+      setSuggestedBox({ left: p.left, top: p.top, width: Math.min(p.width, 1 - p.left), height: Math.min(p.height, 1 - p.top) });
+    } else if (photoFrom === null) {
+      setSuggestedBox(null);
+    }
   }
 
   function run(withAnswers: boolean) {
@@ -299,12 +309,12 @@ export function SetupFlow({ hasProfile }: { hasProfile: boolean }) {
           <h2 className="text-lg font-semibold">Profile photo (optional)</h2>
           <p className="mb-3 text-sm text-ink-soft">Use one of your screenshots? Choose a clear photo of you – not of players – that you have the right to use.</p>
           <div role="radiogroup" aria-label="Profile photo" className="flex flex-wrap gap-2">
-            <button type="button" role="radio" aria-checked={photoFrom === null} onClick={() => setPhotoFrom(null)}
+            <button type="button" role="radio" aria-checked={photoFrom === null} onClick={() => { setPhotoFrom(null); setSuggestedBox(null); }}
               className={`h-20 w-20 rounded-xl border text-xs ${photoFrom === null ? "border-ink bg-ink text-canvas" : "border-sage-line bg-white"}`}>
               No photo
             </button>
             {shots.map((sh, i) => (
-              <button key={i} type="button" role="radio" aria-checked={photoFrom === i} aria-label={`Use screenshot ${i + 1} for my photo`} onClick={() => setPhotoFrom(i)}
+              <button key={i} type="button" role="radio" aria-checked={photoFrom === i} aria-label={`Use screenshot ${i + 1} for my photo`} onClick={() => { setPhotoFrom(i); setSuggestedBox(null); }}
                 className={`h-20 w-20 overflow-hidden rounded-xl border-2 ${photoFrom === i ? "border-ink" : "border-transparent"}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- local preview */}
                 <img src={sh.preview} alt="" className="h-full w-full object-cover" />
@@ -313,7 +323,8 @@ export function SetupFlow({ hasProfile }: { hasProfile: boolean }) {
           </div>
           {photoFrom !== null && shots[photoFrom] && (
             <div className="mt-4">
-              <PhotoCropper key={photoFrom} src={shots[photoFrom].preview} onChange={setPhoto} />
+              {suggestedBox && <p className="mb-2 text-sm">We&apos;ve framed the profile picture we found – adjust it if needed, or choose &ldquo;No photo&rdquo;.</p>}
+              <PhotoCropper key={`${photoFrom}-${suggestedBox ? "ai" : "manual"}`} src={shots[photoFrom].preview} onChange={setPhoto} initialBox={suggestedBox} />
             </div>
           )}
         </Card>

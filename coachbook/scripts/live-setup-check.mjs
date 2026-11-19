@@ -111,17 +111,33 @@ try {
   check(snap.hours.some((h) => h === "Sunday"), `hours from the screenshot: ${snap.hours.join(", ")}`);
   check(/M6/i.test(snap.postcode ?? ""), `postcode area: ${snap.postcode}`);
 
-  // Use the screenshot's profile picture as the photo, then save and publish
-  await page.getByRole("radio", { name: "Use screenshot 1 for my photo" }).click();
-  const crop = page.getByRole("img", { name: /Photo crop area/ });
-  await crop.waitFor();
-  await page.getByLabel("Zoom").fill("3");
+  // Claude should find the round profile picture and frame it (no manual cropping here)
+  const preselected = (await page.getByRole("radio", { name: "Use screenshot 1 for my photo" }).getAttribute("aria-checked")) === "true";
+  check(preselected, "Claude found the profile picture and pre-selected the screenshot");
+  if (!preselected) await page.getByRole("radio", { name: "Use screenshot 1 for my photo" }).click();
+  await page.getByRole("img", { name: /Photo crop area/ }).waitFor();
+  await page.waitForTimeout(500);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/run2-photo.png`, fullPage: true });
   // Leave any price-less sessions unticked so saving is allowed
   await page.click(`button:has-text("Save what's ticked")`);
   await page.getByRole("heading", { name: "Saved" }).waitFor({ timeout: 60000 });
   const [coachB] = await db(`coaches?profile_id=eq.${b.id}&select=id,slug,photo_url,dbs_checked,published`);
   check(Boolean(coachB?.photo_url) && !coachB.dbs_checked, `saved with a cropped photo; DBS left for the coach to tick (page /${coachB?.slug})`);
+  // The middle of the saved photo should be the round picture's face colour, not the white page or green post grid.
+  const [r, g, bl] = await page.evaluate(async (src) => {
+    const im = new Image();
+    im.crossOrigin = "anonymous";
+    im.src = src;
+    await im.decode();
+    const c = document.createElement("canvas");
+    c.width = im.naturalWidth;
+    c.height = im.naturalHeight;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(im, 0, 0);
+    return Array.from(ctx.getImageData(Math.floor(c.width / 2), Math.floor(c.height / 2), 1, 1).data);
+  }, coachB.photo_url);
+  lines.push(`\nSaved photo centre colour: rgb(${r}, ${g}, ${bl}) (face colour in the test picture is rgb(242, 201, 160))`);
+  check(Math.abs(r - 242) < 40 && Math.abs(g - 201) < 40 && Math.abs(bl - 160) < 40, `the saved photo is centred on the profile picture (centre colour rgb(${r}, ${g}, ${bl}))`);
   if (await page.getByRole("button", { name: "Publish my page" }).count()) {
     await page.getByRole("button", { name: "Publish my page" }).click();
     await page.waitForTimeout(3000);

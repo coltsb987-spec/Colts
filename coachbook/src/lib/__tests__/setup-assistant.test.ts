@@ -39,3 +39,24 @@ describe("postcode areas", () => {
     expect(postcodeArea("BL1")).toBe("BL1");
   });
 });
+
+import { framingFor } from "../../components/photo-cropper";
+describe("framing a found profile picture", () => {
+  it("centres and zooms on the box", () => {
+    // 430x760 screenshot, round picture at (16,16) size 86x86
+    const box = { left: 16 / 430, top: 16 / 760, width: 86 / 430, height: 86 / 760 };
+    const f = framingFor(430, 760, box);
+    expect(f.zoom).toBeGreaterThan(3.5);
+    const scale = (240 / 430) * f.zoom;
+    const cx = f.x + (16 + 43) * scale;
+    const cy = f.y + (16 + 43) * scale;
+    // Picture centre lands in the middle of the square (can't go past the image's edge)
+    expect(Math.abs(cx - 120)).toBeLessThan(25);
+    expect(Math.abs(cy - 120)).toBeLessThan(25);
+    expect(f.x).toBeLessThanOrEqual(0);
+    expect(f.y).toBeLessThanOrEqual(0);
+  });
+  it("never zooms out past the picture", () => {
+    expect(framingFor(1000, 1000, { left: 0, top: 0, width: 1, height: 1 }).zoom).toBe(1);
+  });
+});

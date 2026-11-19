@@ -47,6 +47,7 @@ function respondSetup(body) {
     weekly_hours: [{ weekday: 6, start: "09:00", end: "12:00", location: "Moss Bank 3G" }],
     faqs: [{ q: "What should my child bring?", a: "Boots, shin pads and water." }],
     questions: answered ? [] : [{ id: "price", question: "How much is a 1-to-1 session?" }],
+    profile_photo: shots ? { screenshot: 1, left: 0.02, top: 0.05, width: 0.25, height: 0.3 } : null,
     notes: [...(text.includes("Text from the coach's page") ? ["Read your website."] : []), ...(shots ? [`Read ${shots} screenshot(s).`] : [])],
   };
   return { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(draft) }] };

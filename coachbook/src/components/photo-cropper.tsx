@@ -10,7 +10,22 @@ const OUT = 600; // size of the saved photo (px)
  * picture inside an Instagram screenshot). Drag to move, slider to zoom, arrow keys too.
  * Calls onChange with a JPEG (base64, no prefix) whenever the crop changes.
  */
-export function PhotoCropper({ src, onChange }: { src: string; onChange: (jpegBase64: string) => void }) {
+export type CropBox = { left: number; top: number; width: number; height: number };
+
+/** Zoom and position that make a box (fractions of the picture) fill the crop square. */
+export function framingFor(naturalW: number, naturalH: number, box: CropBox) {
+  const base = VIEW / Math.min(naturalW, naturalH);
+  const side = Math.max(box.width * naturalW, box.height * naturalH) * 1.15; // a little margin
+  const zoom = Math.min(6, Math.max(1, Math.min(naturalW, naturalH) / Math.max(side, 1)));
+  const scale = base * zoom;
+  const cx = (box.left + box.width / 2) * naturalW;
+  const cy = (box.top + box.height / 2) * naturalH;
+  const x = Math.min(0, Math.max(VIEW - naturalW * scale, VIEW / 2 - cx * scale));
+  const y = Math.min(0, Math.max(VIEW - naturalH * scale, VIEW / 2 - cy * scale));
+  return { zoom, x, y };
+}
+
+export function PhotoCropper({ src, onChange, initialBox }: { src: string; onChange: (jpegBase64: string) => void; initialBox?: CropBox | null }) {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -19,13 +34,21 @@ export function PhotoCropper({ src, onChange }: { src: string; onChange: (jpegBa
   useEffect(() => {
     const el = new Image();
     el.onload = () => {
-      // Start with the picture centred in the square.
-      const b = VIEW / Math.min(el.naturalWidth, el.naturalHeight);
-      setPos({ x: (VIEW - el.naturalWidth * b) / 2, y: (VIEW - el.naturalHeight * b) / 2 });
-      setZoom(1);
+      if (initialBox) {
+        // Start framed on the profile picture Claude found.
+        const f = framingFor(el.naturalWidth, el.naturalHeight, initialBox);
+        setZoom(f.zoom);
+        setPos({ x: f.x, y: f.y });
+      } else {
+        // Start with the picture centred in the square.
+        const b = VIEW / Math.min(el.naturalWidth, el.naturalHeight);
+        setPos({ x: (VIEW - el.naturalWidth * b) / 2, y: (VIEW - el.naturalHeight * b) / 2 });
+        setZoom(1);
+      }
       setImg(el);
     };
     el.src = src;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only reframe when the picture changes
   }, [src]);
 
   const base = img ? VIEW / Math.min(img.naturalWidth, img.naturalHeight) : 1;
