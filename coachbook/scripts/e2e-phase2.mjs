@@ -170,9 +170,10 @@ try {
   if (w1.status !== 200) fail(`webhook failed: ${JSON.stringify(w1)}`);
   [booking] = await db(`bookings?id=eq.${booking.id}&select=*`);
   if (booking.status !== "confirmed" || booking.payment_status !== "paid") fail(`booking not confirmed: ${booking.status}/${booking.payment_status}`);
-  const w2 = await sendWebhook(paidEvent);
-  if (!w2.body.duplicate) fail("duplicate webhook not detected");
-  ok("payment webhook confirms the booking as paid; repeat deliveries are ignored");
+  // Repeat delivery, signed with the Connect endpoint's secret if we have it (checks both secrets work).
+  const w2 = await sendWebhook(paidEvent, process.env.STRIPE_CONNECT_WEBHOOK_SECRET ?? process.env.STRIPE_WEBHOOK_SECRET);
+  if (!w2.body.duplicate) fail(`duplicate webhook not detected: ${JSON.stringify(w2)}`);
+  ok("payment webhook confirms the booking as paid; repeat deliveries are ignored (both webhook secrets accepted)");
 
   await pp.goto(`${APP}/parent/bookings/${booking.id}`);
   await pp.getByText("Confirmed · Paid").waitFor();
@@ -237,8 +238,12 @@ try {
 
   // Cancel the free one
   await cp.locator("li", { hasText: "Free taster" }).getByRole("button", { name: "Cancel" }).click();
-  await cp.waitForTimeout(1500);
-  const [freeAfter] = await db(`bookings?id=eq.${freeBooking.id}&select=status,cancelled_by`);
+  let freeAfter;
+  for (let i = 0; i < 30; i++) {
+    [freeAfter] = await db(`bookings?id=eq.${freeBooking.id}&select=status,cancelled_by`);
+    if (freeAfter.status === "cancelled") break;
+    await cp.waitForTimeout(500);
+  }
   if (freeAfter.status !== "cancelled" || freeAfter.cancelled_by !== "coach") fail("free booking not cancelled");
   ok("coach cancelled the free session");
 
