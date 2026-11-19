@@ -1,0 +1,76 @@
+// Phase 3b end-to-end test: "Fill my profile for me". Local stack + mock Claude (see e2e-phase3.mjs).
+import { createRequire } from "node:module";
+import { mkdirSync } from "node:fs";
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright");
+
+const APP = process.env.APP_URL ?? "http://localhost:3000";
+const SB = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SB_KEY = process.env.SUPABASE_SECRET_KEY;
+const SHOTS = process.argv[2];
+if (SHOTS) mkdirSync(SHOTS, { recursive: true });
+const run = Date.now().toString(36);
+const users = [];
+const ok = (m) => console.log(`ok - ${m}`);
+const fail = (m) => { throw new Error(`FAIL: ${m}`); };
+const H = { apikey: SB_KEY, "Content-Type": "application/json", ...(SB_KEY === "proxy-injected" ? {} : { Authorization: `Bearer ${SB_KEY}` }) };
+const db = async (path) => (await fetch(`${SB}/rest/v1/${path}`, { headers: H })).json();
+
+const browser = await chromium.launch(process.env.E2E_BROWSER_PROXY ? { proxy: { server: process.env.E2E_BROWSER_PROXY } } : {});
+try {
+  const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+  const res = await fetch(`${SB}/auth/v1/admin/generate_link`, { method: "POST", headers: H, body: JSON.stringify({ type: "magiclink", email: `p3b-${run}@example.com`, data: { role: "coach", full_name: "Sam Test" } }) });
+  const link = await res.json();
+  const userId = link.id ?? link.user?.id;
+  users.push(userId);
+  await page.goto(`${APP}/auth/confirm?next=/coach&token_hash=${link.hashed_token ?? link.properties?.hashed_token}&type=email`);
+  await page.waitForURL(`${APP}/coach`);
+  await page.getByRole("link", { name: "Fill my profile for me" }).click();
+  await page.waitForURL(`${APP}/coach/setup`);
+  ok("new coach is offered 'Fill my profile for me' on their dashboard");
+
+  await page.fill("textarea", "I'm Sam, UEFA C coach in Bolton, DBS checked. 1-to-1s for ages 7-14 on Saturday mornings 9-12 at Moss Bank 3G.");
+  await page.getByLabel("Link 1").fill("https://example.com/sam");
+  await page.click('button:has-text("Fill my profile for me")');
+  await page.getByText("A few quick questions").waitFor({ timeout: 60000 });
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p3b-01-questions.png`, fullPage: true });
+  if (!(await page.getByRole("button", { name: "Save what's ticked" }).isDisabled())) fail("could save a session with no price");
+  ok("draft appears; it asks for the missing price and won't save a session without one");
+
+  await page.getByLabel("How much is a 1-to-1 session?").fill("£30 an hour");
+  await page.click('button:has-text("Update my draft")');
+  await page.waitForFunction(() => !document.body.innerText.includes("A few quick questions") && document.body.innerText.includes("Sessions & prices"), null, { timeout: 60000 });
+  if ((await page.getByLabel("Price").inputValue()) !== "30") fail("price not filled from the answer");
+  await page.getByText("we never tick it for you").waitFor();
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p3b-02-review.png`, fullPage: true });
+  ok("answering the question updates the draft (price £30); DBS is flagged for the coach to tick themselves");
+
+  // Untick the postcode, save the rest
+  await page.getByLabel("Use Postcode").uncheck();
+  await page.click(`button:has-text("Save what's ticked")`);
+  await page.getByRole("heading", { name: "Saved" }).waitFor({ timeout: 30000 });
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p3b-03-saved.png`, fullPage: true });
+  const [coach] = await db(`coaches?profile_id=eq.${userId}&select=id,slug,business_name,postcode,dbs_checked,qualifications,receptionist_settings`);
+  if (!coach || coach.slug !== "sam-bolton-football" || coach.postcode !== null || coach.dbs_checked) fail(`coach wrong ${JSON.stringify(coach)}`);
+  const services = await db(`services?coach_id=eq.${coach.id}&select=name,price_pence,duration_minutes`);
+  const rules = await db(`availability_rules?coach_id=eq.${coach.id}&select=weekday,start_time,end_time`);
+  if (services.length !== 1 || services[0].price_pence !== 3000) fail(`services wrong ${JSON.stringify(services)}`);
+  if (rules.length !== 1 || rules[0].weekday !== 6 || rules[0].start_time !== "09:00:00") fail(`hours wrong ${JSON.stringify(rules)}`);
+  if (coach.receptionist_settings.faqs?.length !== 1) fail("FAQ not saved");
+  ok(`saved: page /${coach.slug}, 1 session at £30, Saturday 09:00–12:00, 1 FAQ; unticked postcode not saved; DBS left unticked`);
+
+  // Running it again adds sessions but skips overlapping hours
+  await page.goto(`${APP}/coach/setup`);
+  await page.fill("textarea", "Same as before. £30 for 1-to-1s.");
+  await page.click('button:has-text("Fill my profile for me")');
+  await page.getByText("Sessions & prices").waitFor({ timeout: 60000 });
+  await page.getByLabel("Use session 1-to-1 session").uncheck();
+  await page.click(`button:has-text("Save what's ticked")`);
+  await page.getByText("overlap hours you already have").waitFor({ timeout: 30000 });
+  ok("running it again for an existing coach skips hours that overlap what's already saved");
+  console.log("ALL PHASE 3B CHECKS PASSED");
+} finally {
+  await browser.close();
+  for (const id of users.filter(Boolean)) await fetch(`${SB}/auth/v1/admin/users/${id}`, { method: "DELETE", headers: H });
+  console.log(`cleanup - removed ${users.length} test user(s)`);
+}

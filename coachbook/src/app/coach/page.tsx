@@ -20,8 +20,14 @@ export default async function CoachHome() {
         />
         <Card>
           <h2 className="text-lg font-semibold">Step 1: your coaching profile</h2>
-          <p className="mt-1 text-ink-soft">Your business name, booking link, bio and qualifications.</p>
-          <ButtonLink href="/coach/profile" className="mt-4">Start setup</ButtonLink>
+          <p className="mt-1 text-ink-soft">
+            Paste a few lines about your coaching (or a link to your website) and our AI will draft your profile, sessions and hours for
+            you to check. Or fill it in yourself.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ButtonLink href="/coach/setup">Fill my profile for me</ButtonLink>
+            <ButtonLink href="/coach/profile" variant="secondary">Set up by hand</ButtonLink>
+          </div>
         </Card>
       </>
     );

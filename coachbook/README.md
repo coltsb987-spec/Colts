@@ -3,7 +3,7 @@
 A booking platform for UK football coaches, with an AI receptionist.
 Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
 
-**Status: Phases 1, 2 and 3 are done.**
+**Status: Phases 1, 2, 3 and 3b are done.**
 - **Phase 1:** coaches sign up, build a profile, add sessions and prices, set weekly hours and holidays, and publish
   a public page at `/<their-link>`. Parents sign up and add players.
 - **Phase 2:** parents book and pay online. Coaches connect their own Stripe account and get paid directly. Coaches
@@ -13,6 +13,12 @@ Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
   profile, checks free times, takes bookings with Stripe payment links, cancels or moves bookings within the
   coach's rule, and hands anything else to the coach. Coaches set its tone, FAQs and rules, and read and reply to
   every conversation under Messages.
+- **Phase 3b – "Fill my profile for me":** a coach pastes a few lines and/or links (website, public pages). Claude
+  reads the links with its own web fetch tool (no scraping code here), drafts the profile, sessions, weekly hours
+  and FAQ answers using only facts given, and asks up to 5 questions about anything essential that's missing.
+  The coach edits and ticks what to keep on one review screen; nothing is saved until they approve. The DBS box is
+  never ticked for them. Limited to 10 drafts per coach per day (`SETUP_ASSISTANT_DRAFTS_PER_DAY`). Uses
+  `SETUP_ASSISTANT_MODEL`, else `RECEPTIONIST_MODEL`, else `claude-opus-5-5`.
 
 ## What's where
 
@@ -35,6 +41,8 @@ Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
 | `src/lib/receptionist/` | AI receptionist: instructions (`prompt.ts`), tools (`tools.ts`), one chat turn (`run.ts`) |
 | `src/app/api/receptionist/[slug]` | Chat endpoint used by the widget (with spending limits) |
 | `src/app/coach/receptionist`, `src/app/coach/messages` | Coach settings, conversations and replies |
+| `src/lib/setup-assistant/`, `src/app/coach/setup` | "Fill my profile for me": draft format, Claude calls, review screen |
+| `scripts/live-receptionist-check.mjs` | Real-Claude conversations against a deployed site, with cost per message |
 | `scripts/e2e-phase1.mjs` … `e2e-phase3.mjs` | Click through each phase in a real browser |
 | `scripts/mock-claude.mjs` | Scripted stand-in for the Claude API, for testing the receptionist's plumbing without a key |
 
