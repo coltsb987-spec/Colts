@@ -4,21 +4,28 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getMyCoach } from "@/lib/auth";
 import { readSettings } from "@/lib/receptionist/settings";
-import { draftProfile, isSetupAssistantConfigured, readLinks } from "@/lib/setup-assistant/draft";
-import { MAX_LINKS, MAX_SOURCE_CHARS, profileDraftSchema, type ProfileDraft } from "@/lib/setup-assistant/schema";
+import { draftProfile, isSetupAssistantConfigured } from "@/lib/setup-assistant/draft";
+import { fetchPage } from "@/lib/setup-assistant/fetch-page";
+import { IMAGE_TYPES, MAX_IMAGES, MAX_LINKS, MAX_SOURCE_CHARS, profileDraftSchema, type ProfileDraft } from "@/lib/setup-assistant/schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { availabilityRuleSchema, coachProfileSchema, RESERVED_SLUGS, serviceSchema, slugify } from "@/lib/validation";
 
 const DRAFTS_PER_DAY = Number(process.env.SETUP_ASSISTANT_DRAFTS_PER_DAY ?? 10);
 
+export type LinkProblem = { url: string; reason: string };
 export type DraftState =
-  | { ok: true; draft: ProfileDraft; linkNotes: string; pastedText: string; round: number }
-  | { ok: false; error: string };
+  | { ok: true; draft: ProfileDraft; pages: { url: string; text: string }[]; linkProblems: LinkProblem[]; round: number }
+  | { ok: false; error: string; linkProblems?: LinkProblem[] };
 
 const draftRequest = z.object({
   pastedText: z.string().trim().max(MAX_SOURCE_CHARS, `Please keep it under ${MAX_SOURCE_CHARS} characters`),
   links: z.array(z.url({ protocol: /^https?$/, error: "Links must start with http:// or https://" })).max(MAX_LINKS),
-  linkNotes: z.string().max(15000).default(""),
+  // Pages already read in an earlier round (so links aren't fetched again).
+  pages: z.array(z.object({ url: z.string(), text: z.string().max(15000) })).max(MAX_LINKS).optional(),
+  images: z
+    .array(z.object({ media_type: z.enum(IMAGE_TYPES), data: z.string().regex(/^[A-Za-z0-9+/]+=*$/, "Bad image").max(2_800_000, "Each screenshot must be under 2 MB") }))
+    .max(MAX_IMAGES, `Up to ${MAX_IMAGES} screenshots`)
+    .default([]),
   answers: z.array(z.object({ question: z.string().max(300), answer: z.string().trim().max(1000) })).max(5).default([]),
   previous: profileDraftSchema.nullable().default(null),
   round: z.number().int().min(0).max(5).default(0),
@@ -42,14 +49,25 @@ export async function requestDraft(payload: unknown): Promise<DraftState> {
   const parsed = draftRequest.safeParse(payload);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check what you entered." };
   const req = parsed.data;
-  if (!req.pastedText && req.links.length === 0 && !req.previous) return { ok: false, error: "Tell us a bit about your coaching, or add a link." };
+  if (!req.pastedText && req.links.length === 0 && req.images.length === 0 && !req.previous)
+    return { ok: false, error: "Paste a link, some text about your coaching, or a screenshot of your profile." };
+
+  // Read links on our server (only on the first round).
+  let pages = req.pages;
+  let linkProblems: LinkProblem[] = [];
+  if (!pages) {
+    const results = await Promise.all(req.links.map(fetchPage));
+    pages = results.filter((p) => p.ok).map((p) => ({ url: p.url, text: (p as { text: string }).text }));
+    linkProblems = results.filter((p) => !p.ok).map((p) => ({ url: p.url, reason: (p as { reason: string }).reason }));
+  }
+  if (!req.pastedText && pages.length === 0 && req.images.length === 0 && !req.previous) {
+    return { ok: false, error: "We couldn't read your link, so there's nothing to draft from yet. Paste your bio text or add screenshots, then try again.", linkProblems };
+  }
   if (!(await takeDraftAllowance(user.id))) return { ok: false, error: "You've used today's drafts. Please try again tomorrow, or fill in your profile by hand." };
 
   try {
-    // Links are read once; later rounds reuse the notes.
-    const linkNotes = req.linkNotes || (await readLinks(req.links));
-    const draft = await draftProfile({ pastedText: req.pastedText, linkNotes, answers: req.answers.filter((a) => a.answer), previous: req.previous });
-    return { ok: true, draft, linkNotes, pastedText: req.pastedText, round: req.round + 1 };
+    const draft = await draftProfile({ pastedText: req.pastedText, pages, images: req.images, answers: req.answers.filter((a) => a.answer), previous: req.previous });
+    return { ok: true, draft, pages, linkProblems, round: req.round + 1 };
   } catch (e) {
     console.error("setup assistant failed", e);
     return { ok: false, error: "The assistant couldn't finish. Please try again in a minute." };
@@ -74,7 +92,9 @@ const applySchema = z.object({
   faqs: z.array(z.object({ q: z.string(), a: z.string() })).max(30),
 });
 
-export type ApplyState = { ok: true; saved: string[]; skipped: string[] } | { ok: false; error: string };
+export type ApplyState =
+  | { ok: true; saved: string[]; skipped: string[]; slug: string; published: boolean; missing: string[] }
+  | { ok: false; error: string };
 
 async function uniqueSlug(base: string): Promise<string> {
   let root = slugify(base);
@@ -174,5 +194,12 @@ export async function applyDraft(payload: unknown): Promise<ApplyState> {
   revalidatePath("/coach", "layout");
   revalidatePath(`/${coach.slug}`);
   const summary = [...new Set(saved.filter((s) => s !== "weekly hours")), ...(saved.includes("weekly hours") ? [`${saved.filter((s) => s === "weekly hours").length} sets of weekly hours`] : [])];
-  return { ok: true, saved: summary, skipped };
+
+  // The minimum to publish: a name (done), one active session and some hours.
+  const [{ count: activeServices }, { count: ruleCount }] = await Promise.all([
+    supabase.from("services").select("id", { count: "exact", head: true }).eq("coach_id", coach.id).eq("active", true),
+    supabase.from("availability_rules").select("id", { count: "exact", head: true }).eq("coach_id", coach.id),
+  ]);
+  const missing = [...(activeServices ? [] : ["a session with a price"]), ...(ruleCount ? [] : ["your weekly hours"])];
+  return { ok: true, saved: summary, skipped, slug: coach.slug, published: coach.published, missing };
 }

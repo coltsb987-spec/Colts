@@ -45,5 +45,6 @@ export function formatDate(isoDate: string): string {
 export function postcodeArea(postcode: string | null): string | null {
   if (!postcode) return null;
   const compact = postcode.replace(/\s+/g, "").toUpperCase();
-  return compact.length > 3 ? compact.slice(0, -3) : compact;
+  // A full postcode ends in digit + 2 letters (the inward code); show only the part before it.
+  return /\d[A-Z]{2}$/.test(compact) && compact.length > 4 ? compact.slice(0, -3) : compact;
 }

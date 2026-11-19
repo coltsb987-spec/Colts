@@ -29,13 +29,33 @@ try {
   await page.waitForURL(`${APP}/coach/setup`);
   ok("new coach is offered 'Fill my profile for me' on their dashboard");
 
+  // Instagram link only: explained in plain words, no draft used.
+  await page.getByLabel("Link 1").fill("https://www.instagram.com/some.coach/");
+  await page.click('button:has-text("Fill my profile for me")');
+  await page.getByText("Instagram didn't let us read that page").waitFor({ timeout: 30000 });
+  await page.getByText("We couldn't read your link").waitFor();
+  const meta = async () => (await (await fetch(`${SB}/auth/v1/admin/users/${userId}`, { headers: H })).json()).app_metadata?.setup_drafts?.count ?? 0;
+  if ((await meta()) !== 0) fail("an unreadable link used up a draft");
+  ok("an Instagram link that can't be read is explained in plain words, offering text or screenshots, and uses no draft");
+
+  // Text + a private address + a screenshot
   await page.fill("textarea", "I'm Sam, UEFA C coach in Bolton, DBS checked. 1-to-1s for ages 7-14 on Saturday mornings 9-12 at Moss Bank 3G.");
-  await page.getByLabel("Link 1").fill("https://example.com/sam");
+  await page.getByLabel("Link 1").fill("http://127.0.0.1:3000/");
+  const shotPage = await page.context().newPage();
+  await shotPage.setContent('<div style="width:600px;height:400px;font:24px sans-serif;padding:20px">@sam.coaching · 1-to-1 football coaching · Bolton</div>');
+  const png = await shotPage.locator("div").screenshot({ type: "png" });
+  await shotPage.close();
+  await page.getByLabel("Add screenshots").setInputFiles({ name: "insta.png", mimeType: "image/png", buffer: png });
+  await page.getByAltText("Screenshot 1").waitFor();
   await page.click('button:has-text("Fill my profile for me")');
   await page.getByText("A few quick questions").waitFor({ timeout: 60000 });
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/p3b-01-questions.png`, fullPage: true });
   if (!(await page.getByRole("button", { name: "Save what's ticked" }).isDisabled())) fail("could save a session with no price");
-  ok("draft appears; it asks for the missing price and won't save a session without one");
+  await page.getByText("We couldn't open that link").waitFor();
+  await page.getByText("Read 1 screenshot(s).").waitFor();
+  if ((await page.getByRole("textbox", { name: "Postcode or area (e.g. M14)" }).inputValue()) !== "BL1") fail("postcode area not drafted");
+  ok("draft appears from text + screenshot; a private/internal link is refused; postcode area BL1 drafted");
+  ok("it asks for the missing price and won't save a session without one");
 
   await page.getByLabel("How much is a 1-to-1 session?").fill("£30 an hour");
   await page.click('button:has-text("Update my draft")');
@@ -46,12 +66,22 @@ try {
   ok("answering the question updates the draft (price £30); DBS is flagged for the coach to tick themselves");
 
   // Untick the postcode, save the rest
-  await page.getByLabel("Use Postcode").uncheck();
+  await page.getByLabel("Use Postcode or area (e.g. M14)").uncheck();
   await page.click(`button:has-text("Save what's ticked")`);
   await page.getByRole("heading", { name: "Saved" }).waitFor({ timeout: 30000 });
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/p3b-03-saved.png`, fullPage: true });
   const [coach] = await db(`coaches?profile_id=eq.${userId}&select=id,slug,business_name,postcode,dbs_checked,qualifications,receptionist_settings`);
   if (!coach || coach.slug !== "sam-bolton-football" || coach.postcode !== null || coach.dbs_checked) fail(`coach wrong ${JSON.stringify(coach)}`);
+  await page.getByText("You've got everything needed to go live").waitFor();
+  await page.getByRole("button", { name: "Publish my page" }).click();
+  await page.waitForFunction(() => true);
+  for (let i = 0; i < 20; i++) {
+    const [c] = await db(`coaches?id=eq.${coach.id}&select=published`);
+    if (c.published) break;
+    await page.waitForTimeout(500);
+    if (i === 19) fail("publish didn't work");
+  }
+  ok("with a name, one session and hours, the coach can publish straight from the setup screen");
   const services = await db(`services?coach_id=eq.${coach.id}&select=name,price_pence,duration_minutes`);
   const rules = await db(`availability_rules?coach_id=eq.${coach.id}&select=weekday,start_time,end_time`);
   if (services.length !== 1 || services[0].price_pence !== 3000) fail(`services wrong ${JSON.stringify(services)}`);

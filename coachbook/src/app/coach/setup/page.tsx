@@ -12,7 +12,7 @@ export default async function SetupPage() {
     <>
       <PageHeader
         title="Fill my profile for me"
-        description="Paste a few lines about your coaching or a link to your website. Our AI drafts your profile, sessions, hours and answers for parents – you check it before anything is saved."
+        description="Paste a link, a few lines about your coaching, or screenshots of your profile. Our AI drafts your profile, sessions and hours – you check and edit it before anything is saved."
       />
       {isSetupAssistantConfigured() ? (
         <SetupFlow hasProfile={Boolean(coach)} />

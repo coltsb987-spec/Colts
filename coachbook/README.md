@@ -13,12 +13,15 @@ Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
   profile, checks free times, takes bookings with Stripe payment links, cancels or moves bookings within the
   coach's rule, and hands anything else to the coach. Coaches set its tone, FAQs and rules, and read and reply to
   every conversation under Messages.
-- **Phase 3b – "Fill my profile for me":** a coach pastes a few lines and/or links (website, public pages). Claude
-  reads the links with its own web fetch tool (no scraping code here), drafts the profile, sessions, weekly hours
-  and FAQ answers using only facts given, and asks up to 5 questions about anything essential that's missing.
-  The coach edits and ticks what to keep on one review screen; nothing is saved until they approve. The DBS box is
-  never ticked for them. Limited to 10 drafts per coach per day (`SETUP_ASSISTANT_DRAFTS_PER_DAY`). Uses
-  `SETUP_ASSISTANT_MODEL`, else `RECEPTIONIST_MODEL`, else `claude-opus-5-5`.
+- **Phase 3b – "Fill my profile for me":** in onboarding a coach pastes a link (website, Facebook, Instagram or
+  any bio page), their bio text, or up to 3 screenshots. Our server fetches the page safely: public addresses only,
+  every redirect checked, 8-second timeout and a size cap. It sends the text or images to Claude, which drafts the
+  business name, bio, qualifications, postcode area, sessions (name, type, length, price), usual hours and FAQ
+  answers. It uses only facts given, and asks up to 5 questions about anything missing from the minimum. The coach
+  edits and ticks what to keep; nothing is saved until they confirm. Unreadable links (Instagram often blocks) are
+  explained in plain words, with the text and screenshot options offered instead. Publishing needs only a name, one
+  session and some hours; the photo, qualifications, DBS and Stripe come later from the checklist. The DBS box is
+  never ticked for the coach.
 
 ## What's where
 
@@ -45,6 +48,33 @@ Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
 | `scripts/live-receptionist-check.mjs` | Real-Claude conversations against a deployed site, with cost per message |
 | `scripts/e2e-phase1.mjs` … `e2e-phase3.mjs` | Click through each phase in a real browser |
 | `scripts/mock-claude.mjs` | Scripted stand-in for the Claude API, for testing the receptionist's plumbing without a key |
+
+## Environment variables
+
+Set these in Vercel (Settings → Environment Variables) and in `.env.local` for local development. See `.env.example`.
+
+| Name | Needed for | Notes |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Everything | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Everything | Safe to expose |
+| `SUPABASE_SECRET_KEY` | Bookings, payments, AI features | Server-only; bypasses row-level security |
+| `NEXT_PUBLIC_SITE_URL` | Email links, Stripe redirects | e.g. `https://colts-one.vercel.app` |
+| `STRIPE_SECRET_KEY` | Payments | `sk_test_…` until launch |
+| `STRIPE_WEBHOOK_SECRET` | Payments | Webhook for "Your account" events |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | Payments | Webhook for "Connected accounts" events |
+| `PLATFORM_FEE_PERCENT` | Optional | CoachBook's cut per booking (default 0) |
+| `SUBSCRIPTION_TRIAL_DAYS` | Optional | Free trial on the £40/month plan (default 60) |
+| `CRON_SECRET` | Reminder emails | Any long random string; Vercel Cron sends it |
+| `RESEND_API_KEY` | Emails | Without it, emails are skipped (logged) |
+| `EMAIL_FROM` | Emails | e.g. `CoachBook UK <bookings@mycoachbook.co.uk>` |
+| `EMAIL_REPLY_TO` | Optional | Inbox for replies when there's no coach to reply to |
+| `ANTHROPIC_API_KEY` | AI receptionist, "Fill my profile for me" | Server-only. Without it, both AI features are hidden |
+| `RECEPTIONIST_MODEL` | Optional | Default `claude-opus-5-5`; e.g. `claude-sonnet-5-5` |
+| `RECEPTIONIST_MAX_MESSAGES_PER_CHAT` | Optional | Default 30 |
+| `RECEPTIONIST_MAX_CHATS_PER_IP_HOUR` | Optional | Default 10 |
+| `RECEPTIONIST_MAX_MESSAGES_PER_COACH_DAY` | Optional | Default 300 |
+| `SETUP_ASSISTANT_MODEL` | Optional | Model for "Fill my profile for me"; defaults to `RECEPTIONIST_MODEL`, then `claude-opus-5-5` |
+| `SETUP_ASSISTANT_DRAFTS_PER_DAY` | Optional | Drafts per coach per day (default 10) |
 
 ## Run it on your computer
 

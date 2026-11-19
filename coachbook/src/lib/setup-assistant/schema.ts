@@ -6,7 +6,8 @@ export const profileDraftSchema = z.object({
   business_name: z.string().nullable().describe("The coaching business name, exactly as the coach uses it. null if not given."),
   bio: z.string().nullable().describe("2-5 sentence bio in the coach's own voice (first person), using only facts provided. null if too little to go on."),
   qualifications: z.string().nullable().describe("Qualifications exactly as stated, one per line. null if none stated."),
-  postcode: z.string().nullable().describe("UK postcode if given. null otherwise."),
+  postcode_area: z.string().nullable().describe("UK postcode, or just its first part (e.g. 'BL1' or 'M14'), if given. null if only a town is known."),
+  town: z.string().nullable().describe("Town or area they coach in (e.g. 'Bolton'), if given."),
   dbs_mentioned: z.boolean().describe("True if the sources say the coach holds a DBS check."),
   services: z
     .array(
@@ -44,3 +45,5 @@ export type ProfileDraft = z.infer<typeof profileDraftSchema>;
 
 export const MAX_SOURCE_CHARS = 8000;
 export const MAX_LINKS = 3;
+export const MAX_IMAGES = 3;
+export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;

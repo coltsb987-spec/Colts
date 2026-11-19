@@ -32,8 +32,8 @@ export function safeNextPath(next: string | null | undefined, fallback = "/"): s
   return next;
 }
 
-// UK postcode (loose check: outward + inward code)
-const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
+// UK postcode: a full postcode ("M14 6HR") or just the area part ("M14").
+export const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]?(\s*\d[A-Z]{2})?$/i;
 
 const optionalText = (max: number) =>
   z
@@ -56,7 +56,7 @@ export const coachProfileSchema = z
       .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers and single dashes only")
       .refine((s) => !RESERVED_SLUGS.has(s), "That link is reserved – please choose another"),
     bio: optionalText(2000),
-    postcode: optionalText(10).refine((v) => v === null || UK_POSTCODE.test(v), "Enter a valid UK postcode"),
+    postcode: optionalText(10).refine((v) => v === null || UK_POSTCODE.test(v), "Enter a UK postcode, or just its first part (e.g. M14)"),
     qualifications: optionalText(1000),
     dbs_checked: z.boolean(),
     booking_notice_hours: z.coerce.number().int().min(0).max(168),

@@ -36,16 +36,18 @@ function respondSetup(body) {
   if ((body.tools ?? []).some((t) => t.type?.startsWith("web_fetch"))) {
     return { stop_reason: "end_turn", content: [{ type: "text", text: "Notes: Saturday mornings 09:00-12:00 at Moss Bank 3G. Kit: boots, shin pads, water." }] };
   }
-  const text = typeof body.messages[0].content === "string" ? body.messages[0].content : body.messages[0].content.map((c) => c.text).join("");
+  const blocks = typeof body.messages[0].content === "string" ? [{ type: "text", text: body.messages[0].content }] : body.messages[0].content;
+  const text = blocks.filter((c) => c.type === "text").map((c) => c.text).join("");
+  const shots = blocks.filter((c) => c.type === "image").length;
   const answered = /A: .*£?30/.test(text);
   const draft = {
     business_name: "Sam Bolton Football", bio: "I'm Sam, a UEFA C coach in Bolton. I run 1-to-1 sessions for players aged 7-14.",
-    qualifications: "UEFA C Licence", postcode: "BL1 4AA", dbs_mentioned: true,
+    qualifications: "UEFA C Licence", postcode_area: "BL1", town: "Bolton", dbs_mentioned: true,
     services: [{ name: "1-to-1 session", type: "one_to_one", duration_minutes: 60, price_pounds: answered ? 30 : null, max_participants: null, location: "Moss Bank 3G", description: null }],
     weekly_hours: [{ weekday: 6, start: "09:00", end: "12:00", location: "Moss Bank 3G" }],
     faqs: [{ q: "What should my child bring?", a: "Boots, shin pads and water." }],
     questions: answered ? [] : [{ id: "price", question: "How much is a 1-to-1 session?" }],
-    notes: text.includes("web pages") ? ["Read your website."] : [],
+    notes: [...(text.includes("Text from the coach's page") ? ["Read your website."] : []), ...(shots ? [`Read ${shots} screenshot(s).`] : [])],
   };
   return { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(draft) }] };
 }
