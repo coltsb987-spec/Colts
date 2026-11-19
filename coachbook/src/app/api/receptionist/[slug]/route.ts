@@ -133,6 +133,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     reply: result.reply,
     actions: result.actions,
     handed_off: result.handedOff,
+    // Token usage is shown only to the owner's own test tools (same secret as the reminder job).
+    ...(process.env.CRON_SECRET && req.headers.get("x-usage-key") === process.env.CRON_SECRET ? { usage: result.usage } : {}),
     messages: await visibleMessages(conversationId),
   });
 }

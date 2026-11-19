@@ -20,7 +20,8 @@ export function isReceptionistConfigured() {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
-export type ReceptionistReply = { reply: string; actions: ReceptionistAction[]; handedOff: boolean };
+export type TurnUsage = { requests: number; input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number };
+export type ReceptionistReply = { reply: string; actions: ReceptionistAction[]; handedOff: boolean; usage?: TurnUsage };
 
 /**
  * Runs one turn: the visitor's message (already saved) + history -> Claude with tools -> reply.
@@ -58,9 +59,10 @@ export async function runReceptionistTurn(opts: {
     handedOff: false,
   };
 
-  let final: Anthropic.Beta.BetaMessage;
+  let final: Anthropic.Beta.BetaMessage | undefined;
+  const usage: TurnUsage = { requests: 0, input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
   try {
-    final = await anthropic().beta.messages.toolRunner({
+    const runner = anthropic().beta.messages.toolRunner({
       model: RECEPTIONIST_MODEL,
       max_tokens: 8000,
       // A chat assistant: low effort keeps replies quick and cheap.
@@ -77,6 +79,17 @@ export async function runReceptionistTurn(opts: {
       messages,
       max_iterations: 8,
     });
+    // Each step of the tool loop is one API request; add up what they used.
+    for await (const message of runner) {
+      final = message;
+      usage.requests++;
+      usage.input_tokens += message.usage.input_tokens;
+      usage.output_tokens += message.usage.output_tokens;
+      usage.cache_read_input_tokens += message.usage.cache_read_input_tokens ?? 0;
+      usage.cache_creation_input_tokens += message.usage.cache_creation_input_tokens ?? 0;
+    }
+    console.info("receptionist_usage", JSON.stringify({ model: RECEPTIONIST_MODEL, ...usage }));
+    if (!final) throw new Error("no response");
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError) {
       console.error("receptionist rate limited", e.message);
@@ -91,6 +104,7 @@ export async function runReceptionistTurn(opts: {
   }
 
   if (final.stop_reason === "refusal") {
+    console.info("receptionist_refusal", JSON.stringify(final.stop_details ?? {}));
     return { reply: "Sorry, I can't help with that here. I can tell you about sessions, check free times, or pass a message to the coach.", actions: [], handedOff: ctx.handedOff };
   }
 
@@ -103,5 +117,6 @@ export async function runReceptionistTurn(opts: {
     reply: text || (ctx.actions.length ? "Here you go:" : "Sorry, I didn't catch that. Could you say it another way?"),
     actions: ctx.actions,
     handedOff: ctx.handedOff,
+    usage,
   };
 }
