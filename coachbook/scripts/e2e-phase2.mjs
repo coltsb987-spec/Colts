@@ -19,6 +19,7 @@ const run = Date.now().toString(36);
 const slug = `p2-coach-${run}`;
 const users = [];
 let stripeAccount = null;
+let coachId = null;
 
 const ok = (m) => console.log(`ok - ${m}`);
 const fail = (m) => { throw new Error(`FAIL: ${m}`); };
@@ -65,7 +66,7 @@ async function captureStripeRedirect(page, host, click) {
   return url;
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.E2E_BROWSER_PROXY ? { proxy: { server: process.env.E2E_BROWSER_PROXY } } : {});
 try {
   // ---------------- Coach setup ----------------
   const coachCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -112,6 +113,7 @@ try {
   if (!onboardUrl?.startsWith("https://connect.stripe.com/")) fail(`not sent to Stripe onboarding: ${onboardUrl}`);
   const [coachRow] = await db(`coaches?slug=eq.${slug}&select=id,stripe_account_id`);
   stripeAccount = coachRow.stripe_account_id;
+  coachId = coachRow.id;
   if (!stripeAccount?.startsWith("acct_")) fail("no Stripe account saved");
   ok(`"Connect Stripe" creates the coach's Stripe account (${stripeAccount.slice(0, 10)}…) and opens Stripe's sign-up`);
   // Stripe's form can't be automated; pretend the coach finished it.
@@ -253,6 +255,10 @@ try {
   console.log("ALL PHASE 2 CHECKS PASSED");
 } finally {
   await browser.close();
+  if (coachId) {
+    const [c] = (await db(`coaches?id=eq.${coachId}&select=stripe_customer_id`).catch(() => [])) ?? [];
+    if (c?.stripe_customer_id) await stripe.customers.del(c.stripe_customer_id).catch(() => undefined);
+  }
   for (const id of users.filter(Boolean)) await fetch(`${SB}/auth/v1/admin/users/${id}`, { method: "DELETE", headers: H });
   if (stripeAccount) await stripe.v2.core.accounts.close(stripeAccount, { applied_configurations: ["merchant"] }).catch(() => undefined);
   console.log(`cleanup - removed ${users.length} test users${stripeAccount ? " and the test Stripe account" : ""}`);
