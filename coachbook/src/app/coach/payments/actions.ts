@@ -11,7 +11,11 @@ async function customerFor(coach: { id: string; business_name: string }, email: 
   const admin = createAdminClient();
   const { data } = await admin.from("coaches").select("stripe_customer_id").eq("id", coach.id).single();
   if (data?.stripe_customer_id) return data.stripe_customer_id as string;
-  const customer = await stripe().customers.create({ email, name: coach.business_name, metadata: { coach_id: coach.id } });
+  // Idempotency key: a double-click can't create two Stripe customers for one coach.
+  const customer = await stripe().customers.create(
+    { email, name: coach.business_name, metadata: { coach_id: coach.id } },
+    { idempotencyKey: `coach-customer-${coach.id}` },
+  );
   await admin.from("coaches").update({ stripe_customer_id: customer.id }).eq("id", coach.id);
   return customer.id;
 }
