@@ -3,8 +3,8 @@ import { createAdminClient, getUserEmail } from "@/lib/supabase/admin";
 import { emailLayout, sendEmail } from "@/lib/email";
 import { formatPrice } from "@/lib/format";
 import { siteUrl } from "@/lib/site";
-import { computeSlots, formatSlotDate, formatSlotTime, londonDate, type DaySlots, type ExistingBooking } from "@/lib/slots";
-import { BOOKABLE_SUBSCRIPTION_STATUSES, stripe } from "@/lib/stripe";
+import { computeSlots, findSlot, formatSlotDate, formatSlotTime, londonDate, type DaySlots, type ExistingBooking } from "@/lib/slots";
+import { BOOKABLE_SUBSCRIPTION_STATUSES, platformFeePence, stripe } from "@/lib/stripe";
 import type { AvailabilityException, AvailabilityRule, Service } from "@/lib/types";
 
 export const HOLD_MINUTES = 35; // Stripe Checkout links expire after 30 minutes
@@ -20,9 +20,11 @@ export type BookingCoach = {
   stripe_charges_enabled: boolean;
   subscription_status: string;
   booking_notice_hours: number;
+  receptionist_settings: unknown;
 };
 
-const COACH_COLS = "id, profile_id, business_name, slug, published, stripe_account_id, stripe_charges_enabled, subscription_status, booking_notice_hours";
+const COACH_COLS =
+  "id, profile_id, business_name, slug, published, stripe_account_id, stripe_charges_enabled, subscription_status, booking_notice_hours, receptionist_settings";
 
 export async function loadCoach(coachId: string): Promise<BookingCoach | null> {
   const { data } = await createAdminClient().from("coaches").select(COACH_COLS).eq("id", coachId).maybeSingle<BookingCoach>();
@@ -120,7 +122,8 @@ async function emailBooking(b: BookingDetails, kind: "confirmed" | "cancelled" |
     rescheduled: { s: `New time: ${service} with ${coach}`, h: "Your session has moved", l: [`${service} with ${coach} for ${player} is now on:`, `${when(b)} (UK time)`, where] },
     reminder: { s: `Tomorrow: ${service} with ${coach}`, h: "See you tomorrow", l: [`Reminder: ${service} with ${coach} for ${player}.`, `When: ${when(b)} (UK time)`, where, "Bring water, boots and shin pads."] },
   }[kind];
-  await sendEmail({ to: parentEmail, subject: parent.s, ...emailLayout({ heading: parent.h, lines: parent.l.filter(Boolean), cta: parentLink }) });
+  // Parents can reply straight to their coach.
+  await sendEmail({ to: parentEmail, replyTo: coachEmail, subject: parent.s, ...emailLayout({ heading: parent.h, lines: parent.l.filter(Boolean), cta: parentLink }) });
 
   if (kind === "reminder") return;
   const coachMsg = {
@@ -225,4 +228,90 @@ export function bookingErrorMessage(error: { code?: string; message?: string }):
   if (error.message?.includes("booking_not_active")) return "This booking can't be changed.";
   console.error("booking error", error);
   return "Something went wrong. Please try again.";
+}
+
+// ---------------------------------------------------------------------------
+// Creating a booking for a signed-in parent (used by the booking page and the AI receptionist)
+// ---------------------------------------------------------------------------
+export type NewBookingResult =
+  | { ok: true; bookingId: string; checkoutUrl: string | null; start: string; end: string }
+  | { ok: false; error: string };
+
+export async function createParentBooking(opts: {
+  coach: BookingCoach;
+  service: Service;
+  start: string;
+  playerId: string;
+  playerName: string;
+  parentId: string;
+  parentEmail: string | undefined;
+  source: "web" | "ai_receptionist";
+}): Promise<NewBookingResult> {
+  const { coach, service } = opts;
+  const can = bookability(coach, service);
+  if (!can.ok) return { ok: false, error: can.reason };
+
+  const slot = findSlot(await getSlots(service, coach), opts.start);
+  if (!slot) return { ok: false, error: "Sorry – that time is no longer available. Please pick another." };
+
+  const admin = createAdminClient();
+  const fee = service.price_pence > 0 ? platformFeePence(service.price_pence) : 0;
+  const { data: bookingId, error: bookErr } = await admin.rpc("book_slot", {
+    p_service_id: service.id,
+    p_start: slot.start,
+    p_player_id: opts.playerId,
+    p_booked_by: opts.parentId,
+    p_source: opts.source,
+    p_status: "pending",
+    p_hold_minutes: HOLD_MINUTES,
+    p_platform_fee: fee,
+  });
+  if (bookErr || !bookingId) return { ok: false, error: bookingErrorMessage(bookErr ?? {}) };
+
+  if (service.price_pence === 0) {
+    await confirmBooking(bookingId, null, false);
+    return { ok: true, bookingId, checkoutUrl: null, start: slot.start, end: slot.end };
+  }
+
+  try {
+    const when = `${formatSlotDate(slot.start, { long: true })}, ${formatSlotTime(slot.start)}–${formatSlotTime(slot.end)} (UK time)`;
+    const session = await stripe().checkout.sessions.create(
+      {
+        mode: "payment",
+        customer_email: opts.parentEmail,
+        client_reference_id: bookingId,
+        metadata: { booking_id: bookingId },
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: "gbp",
+              unit_amount: service.price_pence,
+              product_data: { name: `${service.name} with ${coach.business_name}`, description: `${when} · for ${opts.playerName}` },
+            },
+          },
+        ],
+        payment_intent_data: {
+          metadata: { booking_id: bookingId },
+          description: `${service.name} – ${when}`,
+          ...(fee > 0 ? { application_fee_amount: fee } : {}),
+        },
+        expires_at: Math.floor(Date.now() / 1000) + 31 * 60,
+        success_url: `${siteUrl()}/parent/bookings/${bookingId}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${siteUrl()}/parent/bookings/${bookingId}?cancelled=1`,
+      },
+      { stripeAccount: coach.stripe_account_id!, idempotencyKey: `checkout-${bookingId}` },
+    );
+    await admin.from("bookings").update({ stripe_checkout_session_id: session.id }).eq("id", bookingId);
+    return { ok: true, bookingId, checkoutUrl: session.url, start: slot.start, end: slot.end };
+  } catch (e) {
+    console.error("checkout create failed", e);
+    await cancelBooking(bookingId, "system");
+    return { ok: false, error: "We couldn't start the payment. Please try again." };
+  }
+}
+
+/** Can a parent cancel or move this booking themselves? (coach's notice rule) */
+export function parentChangeAllowed(startAt: string, noticeHours: number, now = new Date()): boolean {
+  return new Date(startAt).getTime() - now.getTime() >= noticeHours * 3600_000;
 }

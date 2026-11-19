@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { Badge, ButtonLink, Card, Logo } from "@/components/ui";
 import { bookability, loadCoach } from "@/lib/bookings";
+import { ReceptionistWidget } from "@/components/receptionist-widget";
+import { defaultGreeting, readSettings } from "@/lib/receptionist/settings";
+import { isReceptionistConfigured } from "@/lib/receptionist/run";
 import { formatDate, formatDuration, formatPrice, formatTime, postcodeArea, SERVICE_TYPE_LABELS, WEEKDAY_ORDER, WEEKDAYS } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import type { AvailabilityRule, PublicCoach, Service } from "@/lib/types";
@@ -39,11 +43,16 @@ export default async function CoachPublicPage({ params }: { params: Promise<{ sl
   });
   const rules = (rul ?? []) as AvailabilityRule[];
   const area = postcodeArea(coach.postcode);
+  const receptionist = bookingCoach ? readSettings(bookingCoach.receptionist_settings) : null;
+  const showChat = Boolean(receptionist?.enabled && isReceptionistConfigured());
 
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
         <Logo />
+        <Link href={`/login?as=parent&next=${encodeURIComponent(`/${coach.slug}`)}`} className="rounded-full px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-sage hover:text-ink">
+          Sign in
+        </Link>
       </header>
 
       <main className="mx-auto max-w-4xl px-4 pb-16">
@@ -147,6 +156,9 @@ export default async function CoachPublicPage({ params }: { params: Promise<{ sl
           </aside>
         </div>
       </main>
+      {showChat && (
+        <ReceptionistWidget slug={coach.slug} coachName={coach.business_name} greeting={receptionist!.greeting || defaultGreeting(coach.business_name)} />
+      )}
     </div>
   );
 }

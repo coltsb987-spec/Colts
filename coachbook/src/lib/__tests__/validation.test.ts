@@ -140,3 +140,17 @@ describe("postcodeArea", () => {
     expect(postcodeArea(null)).toBeNull();
   });
 });
+
+import { readSettings } from "../receptionist/settings";
+describe("receptionist settings", () => {
+  it("fills defaults from the Phase 1 shape", () => {
+    const s = readSettings({ tone: "friendly", faqs: [], rules: {} });
+    expect(s).toMatchObject({ enabled: false, tone: "friendly", cancellation_notice_hours: 24, faqs: [] });
+  });
+  it("keeps valid parts of bad data", () => {
+    const s = readSettings({ enabled: true, tone: "rude", faqs: "nope" });
+    expect(s.enabled).toBe(true);
+    expect(s.tone).toBe("friendly");
+    expect(s.faqs).toEqual([]);
+  });
+});

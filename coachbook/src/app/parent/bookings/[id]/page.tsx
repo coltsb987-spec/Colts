@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { BookingStatusBadge } from "@/components/booking-status";
 import { ButtonLink, Card } from "@/components/ui";
 import { requireRole } from "@/lib/auth";
-import { cancelBooking, confirmBooking, getBookingDetails } from "@/lib/bookings";
+import { InlineAction } from "@/components/action-form";
+import { cancelBooking, confirmBooking, getBookingDetails, loadCoach, parentChangeAllowed } from "@/lib/bookings";
+import { readSettings } from "@/lib/receptionist/settings";
+import { parentCancelBooking } from "./actions";
 import { formatPrice } from "@/lib/format";
 import { getUserEmail } from "@/lib/supabase/admin";
 import { formatSlotDate, formatSlotTime } from "@/lib/slots";
@@ -48,6 +51,9 @@ export default async function ParentBookingPage({
   }
 
   const coachEmail = b.status === "confirmed" ? await getUserEmail(b.coaches?.profile_id) : null;
+  const coach = b.status === "confirmed" ? await loadCoach(b.coach_id) : null;
+  const noticeHours = coach ? readSettings(coach.receptionist_settings).cancellation_notice_hours : 24;
+  const canCancel = b.status === "confirmed" && parentChangeAllowed(b.start_at, noticeHours);
   const justBooked = b.status === "confirmed" && (sp.session_id || sp.booked);
 
   return (
@@ -68,9 +74,20 @@ export default async function ParentBookingPage({
           <div><dt className="text-ink-soft">Where</dt><dd className="font-medium">{b.services?.location ?? "Your coach will confirm"}</dd></div>
           <div><dt className="text-ink-soft">Price</dt><dd className="font-medium">{formatPrice(b.price_pence)}</dd></div>
         </dl>
+        {canCancel && (
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <InlineAction
+              action={parentCancelBooking.bind(null, b.id)}
+              label="Cancel booking"
+              variant="secondary"
+              confirm={b.payment_status === "paid" ? `Cancel this session? You'll get a full refund of ${formatPrice(b.price_pence)}.` : "Cancel this session?"}
+            />
+            <span className="text-xs text-ink-soft">Free cancellation up to {noticeHours} hours before{b.payment_status === "paid" ? ", with a full refund" : ""}.</span>
+          </div>
+        )}
         {b.status === "confirmed" && (
           <p className="mt-5 text-sm text-ink-soft">
-            Need to change or cancel? Contact {b.coaches?.business_name}
+            {canCancel ? "To move the session, contact" : "Need to change or cancel? Contact"} {b.coaches?.business_name}
             {coachEmail && <> at <a className="font-medium text-ink underline" href={`mailto:${coachEmail}`}>{coachEmail}</a></>}.
           </p>
         )}

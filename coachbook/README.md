@@ -1,14 +1,18 @@
 # CoachBook UK
 
-A booking platform for UK football coaches, with an AI receptionist (coming in Phase 3).
+A booking platform for UK football coaches, with an AI receptionist.
 Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
 
-**Status: Phases 1 and 2 are done.**
+**Status: Phases 1, 2 and 3 are done.**
 - **Phase 1:** coaches sign up, build a profile, add sessions and prices, set weekly hours and holidays, and publish
   a public page at `/<their-link>`. Parents sign up and add players.
 - **Phase 2:** parents book and pay online. Coaches connect their own Stripe account and get paid directly. Coaches
   see upcoming sessions and earnings, can cancel (with automatic refund) or move sessions, and can start the
   £40/month plan with a free trial. Confirmation emails and day-before reminders are sent too.
+- **Phase 3:** an AI receptionist (Claude) chats on each coach's page. It answers from the coach's own FAQs and
+  profile, checks free times, takes bookings with Stripe payment links, cancels or moves bookings within the
+  coach's rule, and hands anything else to the coach. Coaches set its tone, FAQs and rules, and read and reply to
+  every conversation under Messages.
 
 ## What's where
 
@@ -28,7 +32,11 @@ Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
 | `src/app/coach/bookings`, `src/app/coach/payments` | Coach bookings, earnings, Stripe and plan |
 | `src/app/api/stripe/webhook` | Stripe events (payments, subscriptions) |
 | `src/app/api/cron/reminders` | Daily reminder emails (Vercel Cron, see `vercel.json`) |
-| `scripts/e2e-phase1.mjs`, `scripts/e2e-phase2.mjs` | Click through each phase in a real browser |
+| `src/lib/receptionist/` | AI receptionist: instructions (`prompt.ts`), tools (`tools.ts`), one chat turn (`run.ts`) |
+| `src/app/api/receptionist/[slug]` | Chat endpoint used by the widget (with spending limits) |
+| `src/app/coach/receptionist`, `src/app/coach/messages` | Coach settings, conversations and replies |
+| `scripts/e2e-phase1.mjs` … `e2e-phase3.mjs` | Click through each phase in a real browser |
+| `scripts/mock-claude.mjs` | Scripted stand-in for the Claude API, for testing the receptionist's plumbing without a key |
 
 ## Run it on your computer
 
@@ -69,6 +77,8 @@ npm test          # unit tests (form rules, prices, links)
 npm run test:db   # security tests for every table (needs PostgreSQL installed locally; no Docker needed)
 npm run test:e2e  # Phase 1 browser walk-through (needs db:start + dev running)
 node scripts/e2e-phase2.mjs   # Phase 2: booking, Stripe Checkout, webhooks (needs Stripe test keys)
+node scripts/mock-claude.mjs 4010 /tmp/mock.jsonl &   # then start dev with ANTHROPIC_BASE_URL=http://127.0.0.1:4010
+MOCK_LOG=/tmp/mock.jsonl node scripts/e2e-phase3.mjs  # Phase 3: receptionist plumbing
 npm run lint && npm run typecheck && npm run build
 ```
 
@@ -98,7 +108,24 @@ npm run lint && npm run typecheck && npm run build
 4. **Coach plan.** Pilot coaches can take bookings for free. "Start plan" begins the £40/month subscription with a
    free trial (`SUBSCRIPTION_TRIAL_DAYS`), and no card is needed to start.
 
-## Next: Phase 3
+## How the AI receptionist works
 
-The AI receptionist: a web chat widget, Claude tool use for availability and bookings, coach tone, FAQs and rules,
-hand-off to the coach, and a conversation log.
+- **Model:** Claude Opus 5.5 (`claude-opus-5-5`) on low effort, which suits chat. Change it with `RECEPTIONIST_MODEL`.
+  If Claude declines a request on safety grounds, the API retries it on a fallback model automatically.
+- **Tools:** `get_services`, `check_availability`, `create_booking` (sends a payment link), `list_my_players`,
+  `list_my_bookings`, `cancel_booking`, `reschedule_booking`, `answer_faq` and `hand_off_to_coach`. Every tool
+  runs on our server with the same checks as the website, so the AI can never do more than the person chatting could.
+- **Who's chatting:** anonymous visitors can ask questions, check times and get a sign-in-and-book link. Signed-in
+  parents can book, cancel and move their own bookings in the chat. Each chat is tied to a random token kept in
+  the visitor's browser; only its hash is stored.
+- **Children's data:** the AI asks only for a first name and age group, and gets the adult's consent before saving
+  a new player.
+- **Spending limits:** 30 messages per chat, 10 new chats per hour per visitor, and 300 messages per coach per day.
+  The instructions are cached, so repeat turns cost less.
+- **Hand-off:** the AI flags the chat, the coach gets an email, and the coach replies from Messages. The reply
+  appears in the visitor's chat, and is also emailed to them if they left an address.
+
+## Next: Phase 4
+
+Pilot launch: onboard pilot coaches, collect weekly feedback, track bookings per coach, AI-handled enquiries and
+churn, then move pilots to the paid plan. Later: SMS/WhatsApp via Twilio and Google Calendar sync.

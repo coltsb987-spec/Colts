@@ -143,6 +143,25 @@ select pg_temp.check((select booking_notice_hours from coaches)=24, 'coach can s
 set role anon;
 select pg_temp.refused($$select * from stripe_events$$, 'anon cannot read stripe events');
 reset role;
+-- ===== Phase 3: receptionist conversations =====
+update conversations set visitor_token_hash = 'abc', ip_hash = 'iphash';
+select id as conv_id from conversations limit 1 \gset
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+update conversations set needs_handoff = true, coach_read_at = now();
+select pg_temp.check((select needs_handoff from conversations limit 1), 'coach can flag/mark their conversation');
+select pg_temp.refused($$update conversations set visitor_token_hash = 'x'$$, 'coach cannot change the visitor token');
+select pg_temp.refused($$insert into conversations (coach_id) select my_coach_id()$$, 'coach cannot create conversations directly');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+select pg_temp.check((select count(*) from conversations)=0, 'other coach cannot see the conversation');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.check((select count(*) from conversations)=0, 'parent cannot read conversations');
+select pg_temp.refused(format($$insert into messages (conversation_id, sender, content) values (%L, 'customer', 'x')$$, :'conv_id'), 'parent cannot write chat messages directly');
+select pg_temp.refused(format($$insert into messages (conversation_id, sender, content) values (%L, 'coach', 'x')$$, :'conv_id'), 'parent cannot post as the coach');
+set role anon;
+select pg_temp.refused($$select * from conversations$$, 'anon cannot read conversations');
+reset role;
+
 select pg_temp.refused($$delete from services where name='1-to-1'$$, 'session type with bookings cannot be deleted');
 delete from auth.users where id = '00000000-0000-0000-0000-00000000000a';
 select pg_temp.check((select count(*) from coaches where slug='a-football')=0, 'deleting a coach account removes their data');

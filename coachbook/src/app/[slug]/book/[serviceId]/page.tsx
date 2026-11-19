@@ -12,8 +12,15 @@ import { BookingForm } from "./booking-form";
 
 export const metadata: Metadata = { title: "Book a session" };
 
-export default async function BookPage({ params }: { params: Promise<{ slug: string; serviceId: string }> }) {
+export default async function BookPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string; serviceId: string }>;
+  searchParams: Promise<{ start?: string }>;
+}) {
   const { slug, serviceId } = await params;
+  const { start: startParam } = await searchParams;
   if (!/^[a-z0-9-]{3,50}$/.test(slug) || !/^[0-9a-f-]{36}$/.test(serviceId)) notFound();
 
   const coach = await loadCoachBySlug(slug);
@@ -21,7 +28,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
   const { data: service } = await createAdminClient().from("services").select("*").eq("id", serviceId).eq("coach_id", coach.id).maybeSingle<Service>();
   if (!service) notFound();
 
-  const { supabase, user } = await requireRole("parent", `/${slug}/book/${serviceId}`);
+  const { supabase, user } = await requireRole("parent", `/${slug}/book/${serviceId}${startParam ? `?start=${encodeURIComponent(startParam)}` : ""}`);
   const can = bookability(coach, service);
   const [{ data: players }, days] = await Promise.all([
     supabase.from("players").select("id, first_name, age_group").eq("parent_profile_id", user.id).order("created_at"),
@@ -52,6 +59,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
               days={days}
               players={players ?? []}
               isGroup={service.type !== "one_to_one"}
+              initialStart={startParam && !Number.isNaN(Date.parse(startParam)) ? new Date(startParam).toISOString() : undefined}
               payLabel={service.price_pence > 0 ? `Continue to payment · ${formatPrice(service.price_pence)}` : "Confirm booking"}
             />
           ) : (

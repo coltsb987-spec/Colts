@@ -2,7 +2,7 @@ import "server-only";
 
 // Sends email through Resend (https://resend.com). If RESEND_API_KEY is not set,
 // emails are logged and skipped so the rest of the app still works.
-export async function sendEmail(msg: { to: string | null; subject: string; html: string; text: string }) {
+export async function sendEmail(msg: { to: string | null; subject: string; html: string; text: string; replyTo?: string | null }) {
   if (!msg.to) return { skipped: true };
   const key = process.env.RESEND_API_KEY;
   if (!key) {
@@ -16,6 +16,7 @@ export async function sendEmail(msg: { to: string | null; subject: string; html:
       body: JSON.stringify({
         from: process.env.EMAIL_FROM ?? "CoachBook UK <onboarding@resend.dev>",
         to: [msg.to],
+        ...(msg.replyTo ? { reply_to: msg.replyTo } : process.env.EMAIL_REPLY_TO ? { reply_to: process.env.EMAIL_REPLY_TO } : {}),
         subject: msg.subject,
         html: msg.html,
         text: msg.text,

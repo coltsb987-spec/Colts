@@ -11,9 +11,11 @@ const timeFmt = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit"
 const noon = (date: string) => new Date(`${date}T12:00:00Z`);
 
 /** Choose a day, then a time. Submits the chosen start as a hidden "start" field. */
-export function SlotPicker({ days, showSpots, name = "start" }: { days: DaySlots[]; showSpots?: boolean; name?: string }) {
-  const [day, setDay] = useState(days[0]?.date ?? "");
-  const [start, setStart] = useState("");
+export function SlotPicker({ days, showSpots, name = "start", initialStart }: { days: DaySlots[]; showSpots?: boolean; name?: string; initialStart?: string }) {
+  // A link from the AI receptionist can pre-select a time (if it's still free).
+  const initialDay = initialStart ? days.find((d) => d.slots.some((s) => s.start === initialStart))?.date : undefined;
+  const [day, setDay] = useState(initialDay ?? days[0]?.date ?? "");
+  const [start, setStart] = useState(initialDay ? initialStart! : "");
   const current = days.find((d) => d.date === day);
 
   if (days.length === 0) {

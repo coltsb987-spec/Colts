@@ -14,12 +14,14 @@ export function BookingForm({
   players,
   isGroup,
   payLabel,
+  initialStart,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   days: DaySlots[];
   players: { id: string; first_name: string; age_group: string }[];
   isGroup: boolean;
   payLabel: string;
+  initialStart?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const [playerId, setPlayerId] = useState(players[0]?.id ?? "new");
@@ -28,7 +30,7 @@ export function BookingForm({
     <form action={formAction} className="space-y-6">
       <section>
         <h2 className="mb-3 text-lg font-semibold">1. Choose a time</h2>
-        <SlotPicker days={days} showSpots={isGroup} />
+        <SlotPicker days={days} showSpots={isGroup} initialStart={initialStart} />
       </section>
 
       <section>
