@@ -45,5 +45,5 @@ export type ProfileDraft = z.infer<typeof profileDraftSchema>;
 
 export const MAX_SOURCE_CHARS = 8000;
 export const MAX_LINKS = 3;
-export const MAX_IMAGES = 3;
+export const MAX_IMAGES = 5;
 export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;

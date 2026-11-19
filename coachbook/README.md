@@ -17,11 +17,11 @@ Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
   any bio page), their bio text, or up to 3 screenshots. Our server fetches the page safely: public addresses only,
   every redirect checked, 8-second timeout and a size cap. It sends the text or images to Claude, which drafts the
   business name, bio, qualifications, postcode area, sessions (name, type, length, price), usual hours and FAQ
-  answers. It uses only facts given, and asks up to 5 questions about anything missing from the minimum. The coach
+  answers (screenshots of Instagram/Facebook profiles or posts work too, up to 5). It uses only facts given, and asks up to 5 questions about anything missing from the minimum. The coach
   edits and ticks what to keep; nothing is saved until they confirm. Unreadable links (Instagram often blocks) are
   explained in plain words, with the text and screenshot options offered instead. Publishing needs only a name, one
   session and some hours; the photo, qualifications, DBS and Stripe come later from the checklist. The DBS box is
-  never ticked for the coach.
+  never ticked for the coach. The coach can crop one of their screenshots into a square profile photo.
 
 ## What's where
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { InlineAction } from "@/components/action-form";
+import { PhotoCropper } from "@/components/photo-cropper";
 import { Button, ButtonLink, Card, Field, Input, Select, Textarea } from "@/components/ui";
 import { WEEKDAY_ORDER, WEEKDAYS } from "@/lib/format";
 import type { ProfileDraft } from "@/lib/setup-assistant/schema";
@@ -15,12 +16,12 @@ type Shot = { name: string; media_type: "image/jpeg"; data: string; preview: str
 /** Shrinks a screenshot in the browser (max 1600px, JPEG) so uploads stay small. */
 async function shrink(file: File): Promise<Shot> {
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, 1400 / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
   canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  const url = canvas.toDataURL("image/jpeg", 0.85);
+  const url = canvas.toDataURL("image/jpeg", 0.8);
   return { name: file.name, media_type: "image/jpeg", data: url.split(",")[1], preview: url };
 }
 
@@ -71,6 +72,8 @@ export function SetupFlow({ hasProfile }: { hasProfile: boolean }) {
   const [services, setServices] = useState<Svc[]>([]);
   const [hours, setHours] = useState<Hours[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
+  const [photoFrom, setPhotoFrom] = useState<number | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
 
   function loadDraft(d: ProfileDraft) {
     setDraft(d);
@@ -124,6 +127,7 @@ export function SetupFlow({ hasProfile }: { hasProfile: boolean }) {
         services: services.filter((s) => s.keep).map((s) => ({ name: s.name, type: s.type, duration_minutes: s.duration_minutes, price: s.priceText, max_participants: s.max_participants, location: s.location, description: s.description })),
         weekly_hours: hours.filter((h) => h.keep).map(({ keep: _k, ...h }) => h),
         faqs: faqs.filter((f) => f.keep).map(({ q, a }) => ({ q, a })),
+        photo: photoFrom !== null ? photo : null,
       });
       if (!res.ok) return setError(res.error);
       setResult(res);
@@ -157,7 +161,7 @@ export function SetupFlow({ hasProfile }: { hasProfile: boolean }) {
         ) : (
           <p className="mt-3 text-sm">To publish your page you still need {result.missing.join(" and ")}. <Link className="font-medium underline" href="/coach">See your checklist</Link>.</p>
         )}
-        <p className="mt-3 text-sm text-ink-soft">Please check everything, add a photo, and tick your DBS box yourself on the Profile page if it applies.</p>
+        <p className="mt-3 text-sm text-ink-soft">Please check everything{result.saved.includes("profile photo") ? "" : ", add a photo"}, and tick your DBS box yourself on the Profile page if it applies.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <ButtonLink href="/coach" variant={result.missing.length === 0 && !result.published ? "secondary" : "primary"}>Go to my dashboard</ButtonLink>
           <ButtonLink href="/coach/profile" variant="secondary">Open my profile</ButtonLink>
@@ -197,7 +201,7 @@ export function SetupFlow({ hasProfile }: { hasProfile: boolean }) {
         </Field>
         <div>
           <p className="mb-1 text-sm font-medium">…or add screenshots</p>
-          <p className="mb-2 text-xs text-ink-soft">Screenshots of your Instagram, Facebook or other profile – up to {MAX_IMAGES}. Only include your own details.</p>
+          <p className="mb-2 text-xs text-ink-soft">Screenshots of your Instagram or Facebook profile or posts – up to {MAX_IMAGES}. You can use one as your profile photo later. Please avoid screenshots showing children&apos;s faces.</p>
           <div className="flex flex-wrap items-center gap-2">
             {shots.map((sh, i) => (
               <div key={i} className="relative">
@@ -289,6 +293,31 @@ export function SetupFlow({ hasProfile }: { hasProfile: boolean }) {
           {!hasProfile && !profile!.business_name.keep && <p className="text-sm text-danger">A business name is needed to create your page.</p>}
         </div>
       </Card>
+
+      {shots.length > 0 && (
+        <Card>
+          <h2 className="text-lg font-semibold">Profile photo (optional)</h2>
+          <p className="mb-3 text-sm text-ink-soft">Use one of your screenshots? Choose a clear photo of you – not of players – that you have the right to use.</p>
+          <div role="radiogroup" aria-label="Profile photo" className="flex flex-wrap gap-2">
+            <button type="button" role="radio" aria-checked={photoFrom === null} onClick={() => setPhotoFrom(null)}
+              className={`h-20 w-20 rounded-xl border text-xs ${photoFrom === null ? "border-ink bg-ink text-canvas" : "border-sage-line bg-white"}`}>
+              No photo
+            </button>
+            {shots.map((sh, i) => (
+              <button key={i} type="button" role="radio" aria-checked={photoFrom === i} aria-label={`Use screenshot ${i + 1} for my photo`} onClick={() => setPhotoFrom(i)}
+                className={`h-20 w-20 overflow-hidden rounded-xl border-2 ${photoFrom === i ? "border-ink" : "border-transparent"}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- local preview */}
+                <img src={sh.preview} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
+          {photoFrom !== null && shots[photoFrom] && (
+            <div className="mt-4">
+              <PhotoCropper key={photoFrom} src={shots[photoFrom].preview} onChange={setPhoto} />
+            </div>
+          )}
+        </Card>
+      )}
 
       {services.length > 0 && (
         <Card>

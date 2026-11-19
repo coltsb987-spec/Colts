@@ -23,7 +23,7 @@ const draftRequest = z.object({
   // Pages already read in an earlier round (so links aren't fetched again).
   pages: z.array(z.object({ url: z.string(), text: z.string().max(15000) })).max(MAX_LINKS).optional(),
   images: z
-    .array(z.object({ media_type: z.enum(IMAGE_TYPES), data: z.string().regex(/^[A-Za-z0-9+/]+=*$/, "Bad image").max(2_800_000, "Each screenshot must be under 2 MB") }))
+    .array(z.object({ media_type: z.enum(IMAGE_TYPES), data: z.string().regex(/^[A-Za-z0-9+/]+=*$/, "Bad image").max(1_400_000, "Each screenshot must be under 1 MB") }))
     .max(MAX_IMAGES, `Up to ${MAX_IMAGES} screenshots`)
     .default([]),
   answers: z.array(z.object({ question: z.string().max(300), answer: z.string().trim().max(1000) })).max(5).default([]),
@@ -90,6 +90,8 @@ const applySchema = z.object({
   })).max(20),
   weekly_hours: z.array(z.object({ weekday: z.number(), start: z.string(), end: z.string(), location: z.string().nullable() })).max(30),
   faqs: z.array(z.object({ q: z.string(), a: z.string() })).max(30),
+  // Optional square profile photo cropped from one of the screenshots (JPEG, base64).
+  photo: z.string().regex(/^[A-Za-z0-9+/]+=*$/).max(700_000).nullable().default(null),
 });
 
 export type ApplyState =
@@ -111,7 +113,7 @@ export async function applyDraft(payload: unknown): Promise<ApplyState> {
   const { supabase, user, coach: existing } = await getMyCoach();
   const parsed = applySchema.safeParse(payload);
   if (!parsed.success) return { ok: false, error: "Something didn't look right. Please try again." };
-  const { profile, services, weekly_hours, faqs } = parsed.data;
+  const { profile, services, weekly_hours, faqs, photo } = parsed.data;
   const saved: string[] = [];
   const skipped: string[] = [];
 
@@ -144,6 +146,24 @@ export async function applyDraft(payload: unknown): Promise<ApplyState> {
     coach = (await getMyCoach()).coach;
   }
   if (!coach) return { ok: false, error: "Couldn't create your profile." };
+
+  // 1b. Profile photo (cropped in the browser from a screenshot the coach chose)
+  if (photo) {
+    const bytes = Buffer.from(photo, "base64");
+    const isJpeg = bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    if (!isJpeg) skipped.push("photo: not a valid image");
+    else {
+      const path = `${user.id}/photo-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("coach-photos").upload(path, bytes, { contentType: "image/jpeg" });
+      if (upErr) skipped.push("photo: couldn't upload");
+      else {
+        const photo_url = supabase.storage.from("coach-photos").getPublicUrl(path).data.publicUrl;
+        const { error } = await supabase.from("coaches").update({ photo_url }).eq("id", coach.id);
+        if (error) skipped.push("photo: couldn't save");
+        else saved.push("profile photo");
+      }
+    }
+  }
 
   // 2. Sessions
   for (const s of services) {

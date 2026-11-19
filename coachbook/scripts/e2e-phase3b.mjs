@@ -65,6 +65,20 @@ try {
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/p3b-02-review.png`, fullPage: true });
   ok("answering the question updates the draft (price £30); DBS is flagged for the coach to tick themselves");
 
+  // Use the screenshot as the profile photo: zoom in and drag
+  await page.getByRole("radio", { name: "Use screenshot 1 for my photo" }).click();
+  const crop = page.getByRole("img", { name: /Photo crop area/ });
+  await crop.waitFor();
+  await page.getByLabel("Zoom").fill("2.5");
+  const box = await crop.boundingBox();
+  await page.mouse.move(box.x + 120, box.y + 120);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 160, box.y + 140, { steps: 5 });
+  await page.mouse.up();
+  await crop.focus();
+  await page.keyboard.press("ArrowLeft");
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/p3b-02b-photo.png`, fullPage: true });
+
   // Untick the postcode, save the rest
   await page.getByLabel("Use Postcode or area (e.g. M14)").uncheck();
   await page.click(`button:has-text("Save what's ticked")`);
@@ -72,6 +86,16 @@ try {
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/p3b-03-saved.png`, fullPage: true });
   const [coach] = await db(`coaches?profile_id=eq.${userId}&select=id,slug,business_name,postcode,dbs_checked,qualifications,receptionist_settings`);
   if (!coach || coach.slug !== "sam-bolton-football" || coach.postcode !== null || coach.dbs_checked) fail(`coach wrong ${JSON.stringify(coach)}`);
+  const [withPhoto] = await db(`coaches?id=eq.${coach.id}&select=photo_url`);
+  if (!withPhoto.photo_url?.includes("/coach-photos/")) fail("profile photo not saved");
+  const size = await page.evaluate(async (src) => {
+    const im = new Image();
+    im.src = src;
+    await im.decode();
+    return [im.naturalWidth, im.naturalHeight];
+  }, withPhoto.photo_url);
+  if (size[0] !== 600 || size[1] !== 600) fail(`photo size ${size}`);
+  ok("a cropped 600×600 profile photo from the screenshot is saved");
   await page.getByText("You've got everything needed to go live").waitFor();
   await page.getByRole("button", { name: "Publish my page" }).click();
   await page.waitForFunction(() => true);
@@ -82,6 +106,11 @@ try {
     if (i === 19) fail("publish didn't work");
   }
   ok("with a name, one session and hours, the coach can publish straight from the setup screen");
+  const pub = await (await browser.newContext()).newPage();
+  await pub.goto(`${APP}/${coach.slug}`);
+  const shown = await pub.locator("main img").first().evaluate(async (im) => { if (!im.complete) await new Promise((r) => (im.onload = im.onerror = r)); return im.naturalWidth > 0; });
+  if (!shown) fail("photo not shown on public page");
+  ok("the photo shows on the coach's public page");
   const services = await db(`services?coach_id=eq.${coach.id}&select=name,price_pence,duration_minutes`);
   const rules = await db(`availability_rules?coach_id=eq.${coach.id}&select=weekday,start_time,end_time`);
   if (services.length !== 1 || services[0].price_pence !== 3000) fail(`services wrong ${JSON.stringify(services)}`);

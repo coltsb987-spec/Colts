@@ -5,8 +5,8 @@ const isLocalSupabase = supabaseUrl && ["127.0.0.1", "localhost"].includes(supab
 
 const nextConfig: NextConfig = {
   experimental: {
-    // Coach photo uploads go through a Server Action (photos are capped at 5 MB).
-    serverActions: { bodySizeLimit: "6mb" },
+    // Coach photo uploads (5 MB max) and setup screenshots (5 shrunk images) go through Server Actions.
+    serverActions: { bodySizeLimit: "8mb" },
   },
   images: {
     // Coach photos come from Supabase Storage.
