@@ -36,12 +36,14 @@ function linkLabel(url: string) {
   }
 }
 
-// Turns URLs on our own site or Stripe Checkout into links; everything else stays plain text.
+// Turns URLs on our own site or Stripe Checkout into links, and **bold** into bold;
+// everything else stays plain text (no HTML is ever injected).
 function Linkified({ text }: { text: string }) {
-  const parts = text.split(/(https?:\/\/[^\s)]+)/g);
+  const parts = text.replace(/^#{1,6}\s+/gm, "").replace(/^\s*\*\s+/gm, "• ").split(/(https?:\/\/[^\s)]+|\*\*[^*\n]+\*\*)/g);
   return (
     <>
       {parts.map((p, i) => {
+        if (/^\*\*[^*\n]+\*\*$/.test(p)) return <strong key={i}>{p.slice(2, -2)}</strong>;
         if (!/^https?:\/\//.test(p)) return <span key={i}>{p}</span>;
         let safe = false;
         try {

@@ -68,6 +68,7 @@ try {
     const reply = (await visitor.locator("[role=dialog] .justify-start").last().innerText()).trim();
     console.log(`  (real reply) ${reply.replace(/\s+/g, " ").slice(0, 220)}`);
     if (!/1-to-1/i.test(reply) || !/£?30/.test(reply)) fail("real receptionist didn't describe the coach's session");
+    if (reply.includes("**")) fail("raw Markdown asterisks shown in the chat");
     ok("the newly live receptionist answers a real question with the coach's session and price");
     await visitor.getByRole("button", { name: "Close chat" }).click();
   }
