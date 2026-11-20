@@ -57,7 +57,7 @@ async function draft(page) {
 const browser = await chromium.launch(process.env.E2E_BROWSER_PROXY ? { proxy: { server: process.env.E2E_BROWSER_PROXY } } : {});
 try {
   // A real public page to read: a published test coach.
-  const a = await newUser("coach", `live-setup-a-${run}@example.com`, "Priya Test");
+  const a = await newUser("coach", `delivered+live-setup-a-${run}@resend.dev`, "Priya Test");
   const slugA = `live-setup-src-${run}`;
   const [coachA] = await db("coaches", { method: "POST", body: JSON.stringify({ profile_id: a.id, business_name: "Priya Shah Football Coaching", slug: slugA, published: true, postcode: "M20 2RN",
     bio: "I'm Priya, a UEFA B coach in Didsbury helping players aged 8-16 build confidence on the ball.", qualifications: "UEFA B Licence\nFA Safeguarding Children" }) });
@@ -69,7 +69,7 @@ try {
   const pageA = `${APP}/${slugA}`;
 
   // ---------- Run 1: website link + Instagram link ----------
-  const b = await newUser("coach", `live-setup-b-${run}@example.com`, "Test Coach");
+  const b = await newUser("coach", `delivered+live-setup-b-${run}@resend.dev`, "Test Coach");
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await ctx.newPage();
   await page.goto(`${APP}/auth/confirm?next=/coach/setup&token_hash=${b.token}&type=email`);
