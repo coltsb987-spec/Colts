@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { keepFields } from "@/components/action-form";
 import { SlotPicker } from "@/components/slot-picker";
 import { Button, Field, Input, Select } from "@/components/ui";
 import type { DaySlots } from "@/lib/slots";
@@ -27,7 +28,7 @@ export function BookingForm({
   const [playerId, setPlayerId] = useState(players[0]?.id ?? "new");
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} onSubmit={keepFields(formAction)} className="space-y-6">
       <section>
         <h2 className="mb-3 text-lg font-semibold">1. Choose a time</h2>
         <SlotPicker days={days} showSpots={isGroup} initialStart={initialStart} />

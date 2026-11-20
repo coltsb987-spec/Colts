@@ -8,12 +8,16 @@ import { setPublished } from "./actions";
 
 export const metadata: Metadata = { title: "Coach dashboard" };
 
-export default async function CoachHome() {
+export default async function CoachHome({ searchParams }: { searchParams: Promise<{ password?: string }> }) {
   const { supabase, coach, profile } = await getMyCoach();
+  const passwordBanner = (await searchParams).password === "updated" && (
+    <p className="mb-4 rounded-xl bg-lime px-4 py-3 font-medium">Your password has been updated.</p>
+  );
 
   if (!coach) {
     return (
       <>
+        {passwordBanner}
         <PageHeader
           title={`Welcome${profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}`}
           description="Let's get your booking page ready. It takes about five minutes."
@@ -51,6 +55,7 @@ export default async function CoachHome() {
 
   return (
     <>
+      {passwordBanner}
       <PageHeader title={coach.business_name} description="Your booking page and setup at a glance." />
 
       <div className="grid gap-4 md:grid-cols-5">

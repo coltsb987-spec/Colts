@@ -31,7 +31,8 @@ Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Supabase.
 | `supabase/migrations/` | Database tables, row-level security, photo storage bucket |
 | `supabase/templates/` | Sign-in email (works on any device) |
 | `supabase/rls_tests/` | Tests showing who can and can't see each table |
-| `src/app/login`, `src/app/auth` | Magic-link sign-in for coaches and parents |
+| `src/app/login`, `src/app/auth`, `src/app/signup`, `src/app/forgot-password`, `src/app/reset-password` | Sign-in for coaches and parents: email link or password, sign-up, forgot/reset password |
+| `src/lib/password.ts` | Password rules (10+ characters, not common, not from your email) |
 | `src/app/coach/*` | Coach dashboard: overview, profile, sessions & prices, availability |
 | `src/app/parent` | Parent area: manage players (with consent) |
 | `src/app/[slug]` | Public coach booking page |
@@ -104,7 +105,8 @@ Sign-in emails don't really get sent locally. Open the test inbox at **http://12
 3. In **Authentication → URL Configuration**, set the Site URL to your live address and add
    `https://<your-domain>/**` to Redirect URLs.
 4. In **Authentication → Emails → Templates**, paste `supabase/templates/magic_link.html` into both
-   "Magic link" and "Confirm signup".
+   "Magic link" and "Confirm signup", and `supabase/templates/recovery.html` into "Reset password".
+   In **Authentication → Providers → Email**, keep "Confirm email" on and set the minimum password length to 10.
 5. Set up custom SMTP (for example Resend) under **Authentication → Emails → SMTP**. Supabase's built-in email is only for testing and is heavily rate-limited.
 6. On Vercel, import the repo, set the **Root Directory** to `coachbook`, and add the three variables from
    `.env.example`.

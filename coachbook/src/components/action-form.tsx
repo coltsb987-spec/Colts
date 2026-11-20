@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useRef, type FormEvent, type ReactNode } from "react";
 import type { ActionState } from "@/lib/types";
 import { Button } from "./ui";
 
@@ -13,6 +13,19 @@ type Props = {
   className?: string;
 };
 
+/**
+ * React clears a form's fields after its action runs - even when the server returns an
+ * error, which would wipe what the person typed. Submitting through onSubmit keeps them;
+ * forms that should clear on success call reset() themselves.
+ */
+export function keepFields(formAction: (fd: FormData) => void) {
+  return (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
+    startTransition(() => formAction(fd));
+  };
+}
+
 // A form wired to a Server Action that shows errors / success messages inline.
 export function ActionForm({ action, children, submitLabel, pendingLabel = "Saving…", resetOnSuccess, className }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
@@ -23,7 +36,7 @@ export function ActionForm({ action, children, submitLabel, pendingLabel = "Savi
   }, [state, resetOnSuccess]);
 
   return (
-    <form ref={ref} action={formAction} className={className ?? "space-y-4"}>
+    <form ref={ref} action={formAction} onSubmit={keepFields(formAction)} className={className ?? "space-y-4"}>
       {children}
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={pending}>{pending ? pendingLabel : submitLabel}</Button>

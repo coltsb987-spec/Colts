@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "./ui";
 import { NavLinks } from "./nav-links";
@@ -20,6 +21,7 @@ export function DashboardShell({
           <Logo href={home} />
           <div className="flex items-center gap-3 text-sm">
             {name && <span className="hidden text-ink-soft sm:inline">{name}</span>}
+            <Link href="/reset-password" className="rounded-full px-3 py-1.5 font-medium text-ink-soft hover:bg-sage hover:text-ink">Password</Link>
             <form action="/auth/signout" method="post">
               <button className="rounded-full px-3 py-1.5 font-medium text-ink-soft hover:bg-sage hover:text-ink">Sign out</button>
             </form>

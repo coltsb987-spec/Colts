@@ -9,14 +9,15 @@ export const metadata: Metadata = { title: "My players" };
 
 const AGE_GROUPS = ["U6", "U7", "U8", "U9", "U10", "U11", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "Adult"];
 
-export default async function ParentHome({ searchParams }: { searchParams: Promise<{ wrong_area?: string }> }) {
+export default async function ParentHome({ searchParams }: { searchParams: Promise<{ wrong_area?: string; password?: string }> }) {
   const { supabase, user } = await requireRole("parent");
-  const { wrong_area } = await searchParams;
+  const { wrong_area, password } = await searchParams;
   const { data } = await supabase.from("players").select("*").eq("parent_profile_id", user.id).order("created_at");
   const players = (data ?? []) as Player[];
 
   return (
     <>
+      {password === "updated" && <p className="mb-4 rounded-xl bg-lime px-4 py-3 font-medium">Your password has been updated.</p>}
       {wrong_area === "coach" && (
         <p className="mb-4 rounded-xl border border-sage-line bg-white px-4 py-3 text-sm">
           This email is registered as a parent account, so it can&apos;t open the coach area. To coach, sign in with a different email.
