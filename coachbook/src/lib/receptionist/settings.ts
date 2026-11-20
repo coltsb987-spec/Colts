@@ -13,7 +13,12 @@ export const faqSchema = z.object({
 });
 
 export const receptionistSettingsSchema = z.object({
+  // Effective on/off. Switched on automatically once the essentials are in place,
+  // unless the coach has paused it.
   enabled: z.boolean().default(false),
+  paused: z.boolean().default(false),
+  // When the coach first pressed Save on their receptionist settings.
+  saved_at: z.string().nullable().default(null),
   tone: z.enum(["friendly", "professional", "energetic"]).default("friendly"),
   greeting: z.string().trim().max(300).default(""),
   faqs: z.array(faqSchema).max(30, "Up to 30 questions").default([]),

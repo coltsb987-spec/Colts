@@ -4,6 +4,7 @@ import { InlineAction } from "@/components/action-form";
 import { CopyLink } from "@/components/copy-link";
 import { Badge, ButtonLink, Card, PageHeader } from "@/components/ui";
 import { getMyCoach } from "@/lib/auth";
+import { receptionistStatus } from "@/lib/receptionist/activation";
 import { setPublished } from "./actions";
 
 export const metadata: Metadata = { title: "Coach dashboard" };
@@ -43,12 +44,14 @@ export default async function CoachHome({ searchParams }: { searchParams: Promis
     supabase.from("bookings").select("id", { count: "exact", head: true }).eq("coach_id", coach.id).eq("status", "confirmed").gte("start_at", new Date().toISOString()),
   ]);
 
+  const receptionist = await receptionistStatus(supabase, coach.id);
   const steps = [
     { done: true, label: "Create your profile", href: "/coach/profile" },
     { done: Boolean(coach.photo_url && coach.bio), label: "Add a photo and bio", href: "/coach/profile" },
     { done: Boolean(services), label: "Add sessions and prices", href: "/coach/services" },
     { done: Boolean(rules), label: "Set your weekly availability", href: "/coach/availability" },
     { done: coach.stripe_charges_enabled, label: "Connect Stripe to get paid", href: "/coach/payments" },
+    { done: receptionist.state === "live", label: receptionist.state === "paused" ? "AI receptionist (paused)" : "Switch on your AI receptionist", href: "/coach/receptionist" },
     { done: coach.published, label: "Publish your booking page", href: "/coach" },
   ];
   const ready = Boolean(services && rules);

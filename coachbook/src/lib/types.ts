@@ -68,4 +68,4 @@ export type Player = {
   parental_consent_at: string | null;
 };
 
-export type ActionState = { error?: string; success?: string } | undefined;
+export type ActionState = { error?: string; success?: string; highlight?: string } | undefined;

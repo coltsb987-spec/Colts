@@ -70,7 +70,6 @@ try {
   await cp.goto(`${APP}/${slug}`);
   if (await cp.getByRole("button", { name: "Ask a question" }).count()) fail("chat shown before it was switched on");
   await cp.goto(`${APP}/coach/receptionist`);
-  await cp.check('input[name="enabled"]');
   await cp.getByLabel("Question 1").fill("What should my child bring?");
   await cp.getByLabel("Answer 1").fill("Boots, shin pads and a full water bottle.");
   await cp.getByLabel("Question 2").fill("What happens if it rains?");
@@ -78,10 +77,10 @@ try {
   await cp.locator("li", { has: cp.getByLabel("Question 3") }).getByRole("button", { name: "Remove" }).click();
   await shot(cp, "p3-01-settings");
   await cp.click('button:has-text("Save settings")');
-  await cp.getByText("Saved – your receptionist is on.").waitFor();
+  await cp.getByText("Your receptionist is now live").waitFor();
   const [saved] = await db(`coaches?id=eq.${coach.id}&select=receptionist_settings`);
   if (!saved.receptionist_settings.enabled || saved.receptionist_settings.faqs.length !== 2) fail(`settings not saved: ${JSON.stringify(saved)}`);
-  ok("coach switched on the receptionist and saved 2 FAQs (blank one dropped)");
+  ok("saving the receptionist settings (sessions + hours already in place) switches it on automatically; 2 FAQs saved (blank one dropped)");
 
   // ---------- Anonymous visitor ----------
   const vctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getMyCoach } from "@/lib/auth";
+import { autoActivateReceptionist } from "@/lib/receptionist/activation";
 import { readSettings } from "@/lib/receptionist/settings";
 import { draftProfile, isSetupAssistantConfigured } from "@/lib/setup-assistant/draft";
 import { fetchPage } from "@/lib/setup-assistant/fetch-page";
@@ -95,7 +96,7 @@ const applySchema = z.object({
 });
 
 export type ApplyState =
-  | { ok: true; saved: string[]; skipped: string[]; slug: string; published: boolean; missing: string[] }
+  | { ok: true; saved: string[]; skipped: string[]; slug: string; published: boolean; missing: string[]; receptionistLive?: string }
   | { ok: false; error: string };
 
 async function uniqueSlug(base: string): Promise<string> {
@@ -221,5 +222,6 @@ export async function applyDraft(payload: unknown): Promise<ApplyState> {
     supabase.from("availability_rules").select("id", { count: "exact", head: true }).eq("coach_id", coach.id),
   ]);
   const missing = [...(activeServices ? [] : ["a session with a price"]), ...(ruleCount ? [] : ["your weekly hours"])];
-  return { ok: true, saved: summary, skipped, slug: coach.slug, published: coach.published, missing };
+  const receptionistLive = await autoActivateReceptionist(supabase, coach.id);
+  return { ok: true, saved: summary, skipped, slug: coach.slug, published: coach.published, missing, receptionistLive };
 }

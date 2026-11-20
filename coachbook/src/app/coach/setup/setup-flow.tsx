@@ -148,6 +148,7 @@ export function SetupFlow({ hasProfile }: { hasProfile: boolean }) {
     return (
       <Card>
         <h2 className="text-lg font-semibold">Saved</h2>
+        {result.receptionistLive && <p role="status" className="mt-2 rounded-2xl bg-lime px-4 py-3 font-semibold">{result.receptionistLive}</p>}
         <ul className="mt-2 list-disc pl-5 text-sm">
           {result.saved.map((s) => <li key={s}>{s}</li>)}
         </ul>

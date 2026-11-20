@@ -14,19 +14,20 @@ const STARTER_FAQS = [
 
 export function ReceptionistSettingsForm({ settings, defaultGreeting }: { settings: ReceptionistSettings; defaultGreeting: string }) {
   const [faqs, setFaqs] = useState(settings.faqs.length ? settings.faqs : STARTER_FAQS);
-  const [enabled, setEnabled] = useState(settings.enabled);
+  const [paused, setPaused] = useState(settings.paused);
 
   return (
     <ActionForm action={saveReceptionistSettings} submitLabel="Save settings" className="space-y-6">
       <input type="hidden" name="faqs" value={JSON.stringify(faqs)} />
 
       <label className="flex items-start gap-3 rounded-2xl border border-sage-line bg-white/70 p-4">
-        <input type="checkbox" name="enabled" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="mt-1 h-5 w-5 accent-ink" />
+        <input type="checkbox" name="paused" role="switch" aria-checked={paused} checked={paused} onChange={(e) => setPaused(e.target.checked)} className="mt-1 h-5 w-5 accent-ink" />
         <span>
-          <span className="block font-semibold">Show the AI receptionist on my booking page</span>
+          <span className="block font-semibold">Pause my receptionist</span>
           <span className="block text-sm text-ink-soft">
-            A chat button appears on your page. It answers questions from your details below, checks your free times, takes bookings
-            with payment links, and lets parents cancel or move within your rules. Anything else comes to you.
+            {paused
+              ? "The chat button is hidden from your page. Untick and press Save to switch it back on."
+              : "Tick and press Save to hide the chat button from your page – for a holiday, say. Your settings are kept."}
           </span>
         </span>
       </label>
@@ -53,7 +54,7 @@ export function ReceptionistSettingsForm({ settings, defaultGreeting }: { settin
 
       <section>
         <h2 className="font-semibold">Your answers to common questions</h2>
-        <p className="mb-3 text-sm text-ink-soft">The receptionist only answers from these, your profile and your sessions. It never makes things up – if it doesn&apos;t know, it asks you.</p>
+        <p className="mb-3 text-sm text-ink-soft">The receptionist only answers from these, your profile and your sessions. It never makes things up – if it doesn&apos;t know, it asks you. Questions you leave unanswered aren&apos;t added.</p>
         <ul className="space-y-3">
           {faqs.map((f, i) => (
             <li key={i} className="rounded-2xl border border-sage-line bg-white/70 p-3">

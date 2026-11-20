@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getMyCoach } from "@/lib/auth";
+import { autoActivateReceptionist } from "@/lib/receptionist/activation";
 import { WEEKDAYS } from "@/lib/format";
 import type { ActionState } from "@/lib/types";
 import {
@@ -74,7 +75,8 @@ export async function saveProfile(_prev: ActionState, formData: FormData): Promi
   refresh(coach?.slug);
   refresh(parsed.data.slug);
   if (!coach) redirect("/coach/services?welcome=1");
-  return { success: "Profile saved." };
+  const live = await autoActivateReceptionist(supabase, coach.id);
+  return { success: "Profile saved.", highlight: live };
 }
 
 export async function setPublished(publish: boolean, _prev: ActionState, _formData: FormData): Promise<ActionState> {
@@ -117,7 +119,8 @@ export async function addService(_prev: ActionState, formData: FormData): Promis
     return { error: "Couldn't add the session. Please try again." };
   }
   refresh(coach.slug);
-  return { success: `Added “${parsed.data.name}”.` };
+  const live = await autoActivateReceptionist(supabase, coach.id);
+  return { success: `Added “${parsed.data.name}”.`, highlight: live };
 }
 
 export async function updateService(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -135,6 +138,7 @@ export async function setServiceActive(id: string, active: boolean, _prev: Actio
   const { supabase, coach } = await needCoach();
   const { error } = await supabase.from("services").update({ active }).eq("id", id).eq("coach_id", coach.id);
   if (error) return { error: "Couldn't update." };
+  if (active) await autoActivateReceptionist(supabase, coach.id);
   refresh(coach.slug);
   return { success: "Updated." };
 }
@@ -175,7 +179,9 @@ export async function addAvailabilityRule(_prev: ActionState, formData: FormData
   if (error) return { error: "Couldn't add those hours. Please try again." };
   refresh(coach.slug);
   const { start_time, end_time, weekday } = parsed.data;
-  return { success: `Added ${WEEKDAYS[weekday]} ${start_time}–${end_time}.` };
+  const live = await autoActivateReceptionist(supabase, coach.id);
+  refresh(coach.slug);
+  return { success: `Added ${WEEKDAYS[weekday]} ${start_time}–${end_time}.`, highlight: live };
 }
 
 export async function deleteAvailabilityRule(id: string, _prev: ActionState, _fd: FormData): Promise<ActionState> {

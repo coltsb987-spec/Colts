@@ -45,6 +45,9 @@ export function ActionForm({ action, children, submitLabel, pendingLabel = "Savi
           {state?.success && <span className="text-ink-soft">{state.success}</span>}
         </p>
       </div>
+      {state?.highlight && (
+        <p role="status" className="rounded-2xl bg-lime px-4 py-3 font-semibold text-ink">{state.highlight}</p>
+      )}
     </form>
   );
 }
