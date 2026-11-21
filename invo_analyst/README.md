@@ -36,6 +36,64 @@ Everything is saved in `data/analyst.db` (SQLite), so you can look back later.
 
 ---
 
+## Scores, evening picks and the track record
+
+### 1. Every closed trade gets a score (0–100, higher is better)
+
+The score is added to the close alert and saved in the `trade_scores` table.
+
+| Part | How it's measured |
+|---|---|
+| Profit/loss | Effect on the trader's **whole balance** (price move × leverage × share of balance used) |
+| Risk taken | Leverage and total exposure (leverage × share of balance). Minus 10 with no stop-loss |
+| Entry quality | Hyperliquid prices while the trade was open: how far price went against them vs how far it went their way |
+| Exit quality | Where they exited between the worst and best price seen during the trade |
+| Reasoning held up | Claude's verdict on whether the opening reason played out (yes 90, partly 60, no 20) |
+| Holding time | Winners held at least as long as usual, losers cut faster than usual = good |
+
+Parts with missing data are left out, never guessed.
+
+### 2. A rolling score per trader over 7, 30 and 90 days
+
+This uses the trader's full Invo trade history, saved daily in the `trader_scores` table. It covers win
+rate, average win vs average loss, risk-adjusted return (average result ÷ how much results swing),
+consistency (% of active days in profit) and maximum drawdown. Your own trade-quality scores count once
+3 or more exist.
+
+**Penalties:**
+- Minus 25 if their profit disappears without their single best trade (one lucky trade).
+- Up to minus 20 if one trade makes up more than half the profit.
+- Up to minus 20 when their typical leverage is above 20x, and minus 10 when any trade used 50x or more.
+- Fewer than 20 trades pulls the score towards a neutral 50, because small samples are mostly luck.
+
+### 3. Evening picks
+
+These come with the daily summary. Every point in the pick score is listed in the "working" for that
+trader:
+- **Recent form:** 60% of the 7-day score plus 40% of the 30-day score, adjusted ±5 for whether they're
+  improving or fading.
+- **Style fit:** does their long/short habit, and how it paid lately, match BTC's current trend (±8)?
+  Minus 5 for high-leverage traders when the market is unusually volatile.
+- **Overnight positions:** up to +4 if they're in profit, minus 3 if they're down more than 3% of
+  balance, minus 5 if exposure is above 100% of balance.
+- **Agreement:** ±3 per position that agrees or disagrees with what the strong traders lean towards.
+
+Someone is picked only with a score of 60+ **and** 8+ points above the group median, with at most 3 picks.
+Otherwise the summary says **"Nobody stands out"** and why. Confidence is high, medium or low depending
+on the score, the lead over the rest, and how many recent trades back it up.
+
+### 4. Checking the picks
+
+24 hours later, each trader's next-day result is worked out as profit/loss on closed trades plus the
+change in open positions, as a % of balance. A pick is a **hit** if it finished in the top third of the
+watched traders **and** made money. Every daily summary shows the running hit rate **next to what random
+picking would score**. If the method doesn't beat chance after 30+ picks, it doesn't work. All picks and
+results are kept in the `picks` and `pick_runs` tables.
+
+This is an experiment, not a prediction service. Treat the hit rate as the only evidence that matters.
+
+---
+
 ## Setup (about 20 minutes)
 
 You need a computer that stays on. A cheap cloud server (about $5/month) works, and so does an old laptop.
@@ -173,7 +231,7 @@ Useful commands: `python3 invo.py status`, and the log at `data/analyst.log`.
 ## Tests
 
 ```sh
-python3 -m unittest discover -s tests     # 31 offline tests, no network or keys needed
+python3 -m unittest discover -s tests     # 41 offline tests, no network or keys needed
 ```
 
 ## Credits

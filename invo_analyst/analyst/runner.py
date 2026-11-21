@@ -23,7 +23,9 @@ from .history import fit, profile
 from .invo_client import (InvoAuthError, InvoClient, InvoError, InvoFeedChangedError, InvoRateLimitError)
 from .leaderboard import top_traders
 from .market import MarketContext
+from . import picks as PK
 from .reasoner import Reasoner
+from .scoring import WINDOWS, excursions, rolling_scores, score_trade, side_performance
 from .summary import collect, render
 
 log = logging.getLogger("analyst.runner")
@@ -39,7 +41,7 @@ class Analyst:
         self.cfg, self.client, self.db, self.reasoner, self.alerter, self.market = cfg, client, db, reasoner, alerter, market
         self.watch: list[dict] = []
         self.watch_at = 0.0
-        self._history: dict[str, tuple[float, dict]] = {}
+        self._history: dict[str, tuple[float, dict, list]] = {}
         self._fail_streak = 0
 
     # ---- feed health --------------------------------------------------------
@@ -109,16 +111,23 @@ class Analyst:
             except Exception:
                 log.exception("failed to process event %s; will retry next cycle", ev["id"])
 
-    def _trader_history(self, pid: str) -> dict:
+    def _trader_history(self, pid: str, max_age: float = HISTORY_TTL_SECONDS) -> dict:
+        return self._history_full(pid, max_age)[0]
+
+    def _history_full(self, pid: str, max_age: float = HISTORY_TTL_SECONDS) -> tuple[dict, list]:
+        """(habits profile, raw closed trades). Cached; at most ~6 Invo calls per trader per refresh."""
         cached = self._history.get(pid)
-        if cached and time.time() - cached[0] < HISTORY_TTL_SECONDS:
-            return cached[1]
+        if cached and time.time() - cached[0] < max_age:
+            return cached[1], cached[2]
         try:
-            prof = profile(self.client.get_closed_history(pid))
+            raw = self.client.get_closed_history(pid)
+            prof = profile(raw)
         except InvoError as e:
-            prof = {"closed_trades_seen": 0, "note": f"history unavailable ({e})"}
-        self._history[pid] = (time.time(), prof)
-        return prof
+            if cached:  # stale data beats none
+                return cached[1], cached[2]
+            raw, prof = [], {"closed_trades_seen": 0, "note": f"history unavailable ({e})"}
+        self._history[pid] = (time.time(), prof, raw)
+        return prof, raw
 
     def _posts(self, pid: str, coin: str, raw: dict) -> list[str]:
         """The trader's own words about this trade, if Invo exposes any. Never guessed."""
@@ -175,10 +184,63 @@ class Analyst:
             self.db.save_explanation(e["id"], review.get("model", "none"), review["confidence"], review["note"],
                                      {"played_out": review["reasoning_played_out"]}, {"price_at_close": price_now})
             text = A.format_close(e, review)
+            text += self._score_closed_trade(e, review)
         else:
             text = A.format_change(e)
         if self.alerter.send(text, subject=f"Invo: {e['trader_name']} {e['kind']} {e['coin']}"):
             self.db.mark_alerted(e["id"])
+
+    # ---- per-trade scoring --------------------------------------------------
+    def _score_closed_trade(self, e: dict, review: dict) -> str:
+        info = json.loads(e["raw_json"] or "{}")
+        opened, closed = info.get("opened_ts"), info.get("closed_ts")
+        path = None
+        if opened and closed and e["entry_price"]:
+            candles = self.market.price_path(e["coin"], opened, closed)
+            path = excursions(candles, e["entry_price"], bool(e["is_long"])) if candles else None
+        prof = self._trader_history(e["portfolio_id"])
+        s = score_trade(is_long=bool(e["is_long"]), entry=e["entry_price"], exit_=e["exit_price"],
+                        leverage=e["leverage"], entry_size=e["entry_size"],
+                        hold_hours=e["hold_seconds"] / 3600 if e["hold_seconds"] else None,
+                        usual_hold_hours=prof.get("median_hold_hours"), had_stop_loss=bool(info.get("stop_loss")),
+                        excursion=path, reasoning_played_out=review.get("reasoning_played_out"))
+        self.db.save_trade_score(e["id"], e, opened, closed, s)
+        parts = [f"{k} {s['score_' + k]:.0f}" for k in ("pnl", "risk", "entry", "exit", "reasoning", "hold")
+                 if s.get("score_" + k) is not None]
+        if s["overall"] is None:
+            return ""
+        return f"\nTrade score {s['overall']:.0f}/100 ({', '.join(parts)})" + (
+            f" - {'; '.join(s['notes'])}" if s["notes"] else "")
+
+    # ---- rolling scores + evening picks --------------------------------------
+    def evening_picks(self, now: float) -> str:
+        day = time.strftime("%Y-%m-%d", time.gmtime(now))
+        self.refresh_watchlist()
+        evaluated = PK.evaluate_due(self.db, now)
+        traders = []
+        for t in self.watch:
+            pid = t["portfolio_id"]
+            prof, raw = self._history_full(pid, max_age=0)  # always fresh for the evening (once a day)
+            quality = {d: self.db.trade_quality(pid, now - d * 86400) for d in WINDOWS}
+            scores = rolling_scores(raw, now, quality)
+            for d, m in scores.items():
+                self.db.save_trader_score(day, pid, t["name"], d, m)
+            traders.append({"portfolio_id": pid, "name": t["name"], "scores": scores, "profile": prof,
+                            "side_perf": side_performance(raw, now), "book": PK.book(self.db, pid)})
+        result = PK.make_picks(traders, self.market.regime())
+        PK.save_run(self.db, day, result, now)
+        score_lines = ["TRADER SCORES (0-100; 7d / 30d / 90d)"]
+        for t in sorted(traders, key=lambda x: -(x["scores"][30].get("score") or 0)):
+            sc = lambda d: "-" if t["scores"][d].get("score") is None else f"{t['scores'][d]['score']:.0f}"
+            m30 = t["scores"][30]
+            extra = ""
+            if m30.get("score") is not None:
+                extra = (f" | 30d: win {m30['win_rate_pct']:.0f}%, avg win {m30['avg_win_pct']:+.2f}% vs avg loss "
+                         f"{m30['avg_loss_pct']:+.2f}%, max drawdown {m30['max_drawdown_pct']:.1f}%")
+                if m30.get("penalties"):
+                    extra += " | penalised: " + ", ".join(k.replace("_", " ") for k in m30["penalties"])
+            score_lines.append(f"- {t['name']}: {sc(7)} / {sc(30)} / {sc(90)}{extra}")
+        return "\n".join(score_lines) + "\n\n" + PK.render(result, PK.track_record(self.db), evaluated)
 
     # ---- daily summary ------------------------------------------------------
     def maybe_daily_summary(self, now: float | None = None, force: bool = False) -> str | None:
@@ -190,6 +252,13 @@ class Analyst:
         facts = collect(self.db, now - 86400)
         ai = self.reasoner.summarise_day(facts) if facts["events_total"] else None
         text = render(facts, ai, self.db.get_health("feed_status", "ok"))
+        try:
+            picks_text = self.evening_picks(now)
+        except Exception:
+            log.exception("evening picks failed")
+            picks_text = "TONIGHT'S PICKS: could not be produced (see log)."
+        body, _, reminder = text.rpartition("\n\n")
+        text = f"{body}\n\n{picks_text}\n\n{reminder}"
         if self.alerter.send(text, subject="Invo analyst: daily summary") and not force:
             self.db.set_health("last_summary_date", today)
         return text

@@ -166,3 +166,24 @@ class MarketContext:
         except (MarketDataError, ValueError, TypeError) as e:
             out["derivatives"] = {"note": f"unavailable ({e})"}
         return out
+
+    def price_path(self, coin: str, opened_ts: float, closed_ts: float) -> list[dict] | None:
+        """Candles covering the time a trade was open (for entry/exit quality). None if unavailable."""
+        hours = max(0.0, (closed_ts - opened_ts) / 3600)
+        interval, step_h = ("15m", 0.25) if hours <= 12 else ("1h", 1) if hours <= 24 * 14 else ("4h", 4)
+        bars = min(1500, int(hours / step_h) + 2)
+        try:
+            raw = candles(coin, interval, bars, end_ms=int(closed_ts * 1000), session=self.session)
+        except MarketDataError as e:
+            log.info("no price path for %s: %s", coin, e)
+            return None
+        # keep only bars that overlap the holding period
+        return [c for c in raw if int(c.get("T", c.get("t", 0))) >= opened_ts * 1000] or None
+
+    def regime(self) -> dict:
+        """Current BTC conditions, used as 'the market' for the evening picks."""
+        try:
+            f = features(candles("BTC", "1h", 120, session=self.session), None)
+        except MarketDataError as e:
+            return {"note": f"market data unavailable ({e})"}
+        return {k: f.get(k) for k in ("trend_1h", "change_24h_pct", "change_72h_pct", "atr_1h_pct", "setup")}

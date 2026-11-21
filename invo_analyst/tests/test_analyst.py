@@ -254,8 +254,10 @@ class FakeInvo:
     def get_recent_closed(self, pid):
         return self.closed[pid]
 
+    history = {}
+
     def get_closed_history(self, pid):
-        return []
+        return self.history.get(pid, [])
 
     def refresh_token_days_left(self):
         return 300
@@ -278,6 +280,12 @@ class FakeReasoner:
 class FakeMarket:
     def for_trade(self, coin, px):
         return {"asset": {"trend_1h": "up"}, "news": "NOT AVAILABLE"}
+
+    def price_path(self, coin, opened, closed):
+        return [{"h": 170, "l": 145}, {"h": 168, "l": 150}]
+
+    def regime(self):
+        return {"trend_1h": "up", "change_24h_pct": 2.0, "atr_1h_pct": 0.5}
 
 
 class FakeAlerter:
@@ -313,11 +321,28 @@ class EndToEndTests(unittest.TestCase):
         self.an.cycle()
         self.assertIn("TRADE CLOSED: alice", self.alerts.sent[-1])
         self.assertEqual(self.reasoner.last_original["reason"], "Likely a breakout.")
-        # daily summary
+        self.assertIn("Trade score", self.alerts.sent[-1])
+        row = self.an.db.conn.execute("SELECT * FROM trade_scores").fetchone()
+        self.assertEqual(row["score_reasoning"], 90)
+        self.assertIsNotNone(row["score_entry"])
+        # daily summary with scores, picks and track record
+        now = time.time()
+        self.invo.history = {P1: [hist_trade(i, i % 20 + 0.5, 2 if i % 3 else -1, now=now) for i in range(25)],
+                             P2: [hist_trade(i, i % 20 + 0.5, 0.5 if i % 2 else -0.6, now=now) for i in range(25)]}
         text = self.an.maybe_daily_summary(force=True)
         self.assertIn("SOL long", text)
-        self.assertIn("past results do not guarantee", text)
         self.assertIn("hypotheses", text)
+        self.assertIn("TRADER SCORES", text)
+        self.assertIn("TONIGHT'S PICKS", text)
+        self.assertIn("PICK TRACK RECORD", text)
+        self.assertTrue(text.rstrip().endswith("nothing here places trades."))
+        self.assertEqual(self.an.db.conn.execute("SELECT COUNT(*) FROM trader_scores").fetchone()[0], 6)
+        self.assertEqual(self.an.db.conn.execute(
+            "SELECT COUNT(*) FROM trader_scores WHERE window_days=30 AND score IS NOT NULL").fetchone()[0], 2)
+        self.assertEqual(self.an.db.conn.execute("SELECT COUNT(*) FROM picks").fetchone()[0], 2)
+        # 25 hours later the picks are checked and the record shows up
+        later = self.an.evening_picks(now + 90000)
+        self.assertIn("Yesterday's picks vs what happened", later)
 
     def test_feed_change_alerts_once_and_recovers(self):
         self.an.cycle()
@@ -369,6 +394,130 @@ class ReasonerTests(unittest.TestCase):
         out = Reasoner({"enabled": False}).explain_move({}, {})
         self.assertEqual(out["confidence"], "low")
         self.assertIn("Not analysed", out["reason"])
+
+
+def hist_trade(i, days_ago, pnl_move_pct, lev=5, size=2.0, long=True, now=None):
+    """A closed Invo trade `days_ago` days back whose price moved pnl_move_pct % in its favour."""
+    now = now or time.time()
+    closed = now - days_ago * 86400
+    exit_px = 100 * (1 + pnl_move_pct / 100 * (1 if long else -1))
+    iso = lambda t: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t))
+    return inv(f"h{i}", lev=lev, size=size, long=long, entry=100, isOpen=False, closingPrice=exit_px,
+               created=iso(closed - 7200), closedAt=iso(closed))
+
+
+class TradeScoreTests(unittest.TestCase):
+    from analyst.scoring import excursions, score_trade  # noqa
+
+    def test_excursions_long_and_short(self):
+        from analyst.scoring import excursions
+        c = [{"h": 110, "l": 95}, {"h": 105, "l": 98}]
+        self.assertEqual(tuple(round(x, 6) for x in excursions(c, 100, True)), (5.0, 10.0))
+        self.assertEqual(tuple(round(x, 6) for x in excursions(c, 100, False)), (10.0, 5.0))
+
+    def test_good_trade_scores_well_and_sloppy_one_badly(self):
+        from analyst.scoring import score_trade
+        good = score_trade(is_long=True, entry=100, exit_=109, leverage=3, entry_size=5, hold_hours=10,
+                           usual_hold_hours=5, had_stop_loss=True, excursion=(1, 10), reasoning_played_out="yes")
+        bad = score_trade(is_long=True, entry=100, exit_=97, leverage=40, entry_size=30, hold_hours=20,
+                          usual_hold_hours=5, had_stop_loss=False, excursion=(8, 6), reasoning_played_out="no")
+        self.assertGreater(good["overall"], 70)
+        self.assertLess(bad["overall"], 30)
+        self.assertEqual(good["score_exit"], 90.9)  # exited at +9 of a -1..+10 range
+        self.assertIn("no stop-loss set", bad["notes"])
+        self.assertAlmostEqual(good["account_return_pct"], 1.35)  # 9% move x 3x x 5% of balance
+
+    def test_missing_price_path_is_not_guessed(self):
+        from analyst.scoring import score_trade
+        s = score_trade(is_long=True, entry=100, exit_=101, leverage=2, entry_size=None, hold_hours=None,
+                        usual_hold_hours=None, had_stop_loss=True, excursion=None, reasoning_played_out="unclear")
+        for k in ("score_entry", "score_exit", "score_reasoning", "score_hold"):
+            self.assertIsNone(s[k])
+        self.assertEqual(sorted(s["components_used"]), ["pnl", "risk"])
+
+
+class RollingScoreTests(unittest.TestCase):
+    def test_steady_trader_beats_lucky_trader(self):
+        from analyst.scoring import rolling_scores
+        now = time.time()
+        steady = [hist_trade(i, i % 25 + 0.5, 2 if i % 3 else -1.5, now=now) for i in range(30)]
+        lucky = [hist_trade(i, i % 25 + 0.5, -1.2, now=now) for i in range(29)] + [hist_trade(99, 3, 60, now=now)]
+        s, l = rolling_scores(steady, now)[30], rolling_scores(lucky, now)[30]
+        self.assertIn("profit_from_one_lucky_trade", l["penalties"])
+        self.assertGreater(s["score"], l["score"] + 15)
+        self.assertEqual(s["trades"], 30)
+
+    def test_high_leverage_penalised(self):
+        from analyst.scoring import rolling_scores
+        now = time.time()
+        calm = [hist_trade(i, i % 20 + 0.5, 1 if i % 2 else -0.5, lev=5, now=now) for i in range(24)]
+        wild = [hist_trade(i, i % 20 + 0.5, 0.1 if i % 2 else -0.05, lev=50, now=now) for i in range(24)]
+        w = rolling_scores(wild, now)[30]
+        self.assertIn("very_high_typical_leverage", w["penalties"])
+        self.assertIn("extreme_max_leverage", w["penalties"])
+        self.assertGreater(rolling_scores(calm, now)[30]["score"], w["score"])
+
+    def test_windows_and_too_few_trades(self):
+        from analyst.scoring import rolling_scores
+        now = time.time()
+        r = rolling_scores([hist_trade(i, 40 + i, 1, now=now) for i in range(5)], now)
+        self.assertIsNone(r[7]["score"])
+        self.assertIsNone(r[30]["score"])
+        self.assertIsNotNone(r[90]["score"])
+        self.assertLess(abs(r[90]["score"] - 50), 50 * 5 / 20 + 1)  # few trades -> pulled toward 50
+
+
+def trader(pid, name, s7, s30, book=None, long_share=50, trades=25, med_lev=5):
+    return {"portfolio_id": pid, "name": name, "profile": {"long_share_pct": long_share},
+            "side_perf": {"long": {"n": 10, "ret": 2.0}, "short": {"n": 5, "ret": -1.0}},
+            "scores": {7: {"score": s7}, 30: {"score": s30, "trades": trades, "median_leverage": med_lev,
+                                              "penalties": {}}, 90: {"score": s30}},
+            "book": book or {"positions": [], "unrealized_by_id": {}, "exposure_pct": 0}}
+
+
+class PickTests(unittest.TestCase):
+    def test_nobody_stands_out(self):
+        from analyst.picks import make_picks
+        res = make_picks([trader(str(i), f"t{i}", 55, 55) for i in range(5)], {"trend_1h": "sideways"})
+        self.assertEqual(res["picks"], [])
+        self.assertIn("Nobody stands out", res["nobody_reason"])
+
+    def test_clear_standout_with_working(self):
+        from analyst.picks import make_picks
+        group = [trader(str(i), f"t{i}", 50, 50) for i in range(5)]
+        group.append(trader("x", "star", 85, 75, long_share=85, trades=40))
+        res = make_picks(group, {"trend_1h": "up", "atr_1h_pct": 0.4})
+        self.assertEqual([p["name"] for p in res["picks"]], ["star"])
+        self.assertEqual(res["picks"][0]["confidence"], "high")
+        working = " ".join(res["picks"][0]["working"])
+        self.assertIn("recent form", working)
+        self.assertIn("style fit", working)
+
+    def test_risky_book_and_volatility_cost_points(self):
+        from analyst.picks import score_trader
+        risky = {"positions": [{"coin": "BTC", "side": "long", "leverage": 50, "size_pct": 5}],
+                 "unrealized_by_id": {"a": -6.0}, "exposure_pct": 250}
+        calm = trader("a", "a", 70, 70)["book"]
+        base = score_trader(trader("a", "a", 70, 70, book=calm, med_lev=20), {"trend_1h": "sideways", "atr_1h_pct": 0.3}, {})
+        bad = score_trader(trader("a", "a", 70, 70, book=risky, med_lev=20), {"trend_1h": "sideways", "atr_1h_pct": 2.0}, {})
+        self.assertEqual(base["score"] - bad["score"], 13)  # -5 volatility, -3 loss, -5 exposure
+
+    def test_evaluation_hit_rate_vs_chance(self):
+        from analyst.picks import evaluate_due, make_picks, save_run, track_record
+        db = DB(":memory:")
+        now = time.time()
+        group = [trader(P1, "alice", 85, 75, long_share=85, trades=40), trader(P2, "bob", 50, 50),
+                 trader("33333333-3333-3333-3333-333333333333", "carol", 50, 50)]
+        save_run(db, "2026-11-20", make_picks(group, {"trend_1h": "up"}), now - 90000)
+        self.assertEqual(evaluate_due(db, now - 86400 * 2), [])  # not due yet
+        # alice closes a winner the next day: +10% move x 5x x 2% of balance = +1% of balance
+        db.add_event({"ts": now - 50000, "portfolio_id": P1, "trader_name": "alice", "base_id": "z", "kind": "closed",
+                      "coin": "BTC", "is_long": True, "leverage": 5, "entry_size": 2.0, "pnl_pct": 50.0})
+        lines = evaluate_due(db, now)
+        self.assertIn("HIT", lines[0])
+        rec = track_record(db)
+        self.assertEqual((rec["picks_checked"], rec["hits"], rec["hit_rate_pct"], rec["chance_pct"]), (1, 1, 100.0, 33.3))
+        self.assertEqual(evaluate_due(db, now), [])  # never evaluated twice
 
 
 class SummaryTests(unittest.TestCase):

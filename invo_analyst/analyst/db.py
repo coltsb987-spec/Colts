@@ -56,6 +56,33 @@ CREATE TABLE IF NOT EXISTS health (
     value TEXT,
     updated REAL
 );
+-- One row per closed trade we saw close: every score kept so the method can be audited later.
+CREATE TABLE IF NOT EXISTS trade_scores (
+    event_id INTEGER PRIMARY KEY REFERENCES events(id),
+    portfolio_id TEXT, trader_name TEXT, coin TEXT, is_long INTEGER,
+    opened_ts REAL, closed_ts REAL, hold_hours REAL, leverage REAL, entry_size REAL,
+    move_pct REAL, pnl_on_margin_pct REAL, account_return_pct REAL, exposure_pct_of_balance REAL,
+    mae_pct REAL, mfe_pct REAL,
+    score_pnl REAL, score_risk REAL, score_entry REAL, score_exit REAL, score_reasoning REAL, score_hold REAL,
+    overall REAL, notes_json TEXT
+);
+-- Rolling per-trader score, one row per trader per window per day.
+CREATE TABLE IF NOT EXISTS trader_scores (
+    day TEXT, portfolio_id TEXT, trader_name TEXT, window_days INTEGER,
+    trades INTEGER, score REAL, metrics_json TEXT,
+    PRIMARY KEY(day, portfolio_id, window_days)
+);
+-- Evening pick runs and the per-trader ranking behind them, plus the next-day check.
+CREATE TABLE IF NOT EXISTS pick_runs (
+    day TEXT PRIMARY KEY, made_ts REAL, nobody_stands_out INTEGER, n_traders INTEGER, reason TEXT,
+    market_json TEXT, evaluated_ts REAL, chance_rate REAL
+);
+CREATE TABLE IF NOT EXISTS picks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    day TEXT, made_ts REAL, portfolio_id TEXT, trader_name TEXT, rank INTEGER, pick_score REAL,
+    is_pick INTEGER, confidence TEXT, working_json TEXT, unrealized_at_pick_json TEXT,
+    evaluated_ts REAL, next_day_return_pct REAL, next_day_rank INTEGER, hit INTEGER
+);
 CREATE INDEX IF NOT EXISTS ix_events_ts ON events(ts);
 CREATE INDEX IF NOT EXISTS ix_events_coin ON events(coin, is_long, ts);
 """
@@ -173,4 +200,25 @@ class DB:
 
     def set_health(self, key: str, value: str) -> None:
         self.conn.execute("INSERT OR REPLACE INTO health VALUES(?,?,?)", (key, value, time.time()))
+        self.conn.commit()
+
+    # ---- scores -------------------------------------------------------------
+    def save_trade_score(self, event_id: int, ev, opened_ts, closed_ts, s: dict) -> None:
+        cols = ["move_pct", "pnl_on_margin_pct", "account_return_pct", "exposure_pct_of_balance", "mae_pct", "mfe_pct",
+                "score_pnl", "score_risk", "score_entry", "score_exit", "score_reasoning", "score_hold", "overall"]
+        self.conn.execute(
+            f"INSERT OR REPLACE INTO trade_scores(event_id, portfolio_id, trader_name, coin, is_long, opened_ts, closed_ts,"
+            f" hold_hours, leverage, entry_size, {','.join(cols)}, notes_json) VALUES({','.join('?' * (11 + len(cols)))})",
+            [event_id, ev["portfolio_id"], ev["trader_name"], ev["coin"], ev["is_long"], opened_ts, closed_ts,
+             ev["hold_seconds"] / 3600 if ev["hold_seconds"] else None, ev["leverage"], ev["entry_size"]]
+            + [s.get(c) for c in cols] + [json.dumps({"notes": s.get("notes"), "used": s.get("components_used")})])
+        self.conn.commit()
+
+    def trade_quality(self, pid: str, since: float) -> list[float]:
+        return [r[0] for r in self.conn.execute(
+            "SELECT overall FROM trade_scores WHERE portfolio_id=? AND closed_ts>=? AND overall IS NOT NULL", (pid, since))]
+
+    def save_trader_score(self, day: str, pid: str, name: str, window: int, m: dict) -> None:
+        self.conn.execute("INSERT OR REPLACE INTO trader_scores VALUES(?,?,?,?,?,?,?)",
+                          (day, pid, name, window, m.get("trades"), m.get("score"), json.dumps(m, default=str)))
         self.conn.commit()

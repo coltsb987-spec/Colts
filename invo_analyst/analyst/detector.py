@@ -128,7 +128,9 @@ def detect(db: DB, portfolio_id: str, trader_name: str, open_invs: list[dict], r
         ev("closed", pos, exit_price=exit_px, hold_seconds=hold,
            pnl_pct=pnl_pct(pos["is_long"], pos["entry_price"], exit_px, pos["leverage"]),
            reason_closed=(closed or {}).get("reasonClosed") if closed else "not in closed list (confirmed missing)",
-           raw_json=json.dumps({"open_event_id": old["open_event_id"]}))
+           raw_json=json.dumps({"open_event_id": old["open_event_id"], "opened_ts": opened_at,
+                                "closed_ts": closed_at or now, "exit_time_known": closed_at is not None,
+                                "stop_loss": (json.loads(old["raw_json"] or "{}") or {}).get("stopLoss")}))
         db.delete_position(bid)
 
     if first_time:
