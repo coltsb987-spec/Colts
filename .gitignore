@@ -16,3 +16,8 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Invo analyst: secrets, tokens, database and logs stay on your machine
+invo_analyst/.env
+invo_analyst/config.json
+invo_analyst/data/

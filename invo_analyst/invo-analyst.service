@@ -1,0 +1,18 @@
+# Keeps the analyst running on a Linux server and restarts it after crashes or reboots.
+# Install:  sudo cp invo-analyst.service /etc/systemd/system/   (edit the two paths + User first)
+#           sudo systemctl daemon-reload && sudo systemctl enable --now invo-analyst
+# Logs:     journalctl -u invo-analyst -f      (also in invo_analyst/data/analyst.log)
+[Unit]
+Description=Invo Top 10 Trade Analyst (read-only research)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/Colts/invo_analyst
+ExecStart=/home/YOUR_USERNAME/Colts/invo_analyst/.venv/bin/python invo.py run
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target

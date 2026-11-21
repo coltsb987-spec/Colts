@@ -1,0 +1,37 @@
+{
+  "dry_run_single_trader": true,
+  "num_traders": 10,
+  "poll_interval_seconds": 300,
+  "leaderboard_refresh_minutes": 60,
+  "alert_channel": "telegram",
+  "alert_on_existing_positions_at_start": false,
+  "min_size_change_pct": 10,
+  "close_confirm_polls": 2,
+  "cluster_min_traders": 2,
+  "cluster_window_hours": 24,
+  "daily_summary_hour_utc": 20,
+  "db_path": "data/analyst.db",
+  "log_path": "data/analyst.log",
+
+  "leaderboard": {
+    "mode": "manual",
+    "portfolio_ids": [
+      "PASTE-PORTFOLIO-ID-OR-URL-HERE"
+    ],
+    "endpoint_path": "",
+    "endpoint_body": {},
+    "rank_by": "plSnapshot"
+  },
+
+  "posts": {
+    "endpoint_path": "",
+    "endpoint_body": {}
+  },
+
+  "claude": {
+    "enabled": true,
+    "model": "claude-opus-5-5",
+    "effort": "medium",
+    "max_calls_per_day": 200
+  }
+}
