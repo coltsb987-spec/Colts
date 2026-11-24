@@ -32,11 +32,18 @@ def load_dotenv(path: Path) -> None:
 
 
 def parse_portfolio_id(raw: str) -> str | None:
-    """Accept a bare UUID or a full https://app.invoapp.com/portfolio/<uuid> URL."""
-    m = UUID_RE.search(raw or "")
+    """Accept a bare UUID or a full https://app.invoapp.com/portfolio/<uuid> URL.
+
+    If the text holds several IDs (e.g. /profile/<user>/portfolio/<id>), the one right after
+    'portfolio' wins; otherwise the LAST one, since links end with the most specific id.
+    """
+    raw = raw or ""
+    after = re.search(r"portfolios?[/=:]\s*(" + UUID_RE.pattern + ")", raw, re.I)
+    found = list(UUID_RE.finditer(raw))
+    m = after if after else (found[-1] if found else None)
     if not m:
         return None
-    s = m.group(0).replace("-", "").lower()
+    s = (m.group(1) if after else m.group(0)).replace("-", "").lower()
     return f"{s[:8]}-{s[8:12]}-{s[12:16]}-{s[16:20]}-{s[20:]}"
 
 

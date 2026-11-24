@@ -7,6 +7,7 @@
   python3 invo.py run          # run forever (Ctrl-C to stop)
   python3 invo.py summary      # send today's summary now
   python3 invo.py status       # what's in the database
+  python3 invo.py debug <id or link>   # show exactly what Invo returns for one trader (safe to paste)
 """
 
 from __future__ import annotations
@@ -81,7 +82,13 @@ def cmd_check(cfg: Config) -> int:
     for o in opens[:10]:
         print(f"   {o.get('ticker')} {'LONG' if o.get('directionLong', True) else 'SHORT'} "
               f"{o.get('leverage')}x entry {o.get('entryPrice')}")
-    print(f"   {len(opens)} open trade(s). Invo API calls used: {client.calls_made}. All good.")
+    print(f"   {len(opens)} open trade(s). Invo API calls used: {client.calls_made}.")
+    s = traders[0]["stats"]
+    if not opens and not any(s.get(k) for k in ("closedPositions", "openPositions", "wonPositions", "lostPositions")):
+        print("   WARNING: Invo returned no trades and zero stats for this ID. It may be a user/profile ID or an")
+        print(f"   empty portfolio. Run:  python3 invo.py debug {traders[0]['portfolio_id']}")
+        return 1
+    print("   All good.")
     return 0
 
 
@@ -102,7 +109,8 @@ def cmd_status(cfg: Config) -> int:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["check", "test-alert", "once", "run", "summary", "status"])
+    ap.add_argument("command", choices=["check", "test-alert", "once", "run", "summary", "status", "debug"])
+    ap.add_argument("target", nargs="?", help="for debug: a portfolio ID or the trader's page link")
     ap.add_argument("--config", help="path to config.json (default: invo_analyst/config.json)")
     a = ap.parse_args(argv)
     cfg = Config.load(a.config)
@@ -114,6 +122,12 @@ def main(argv=None) -> int:
         return cmd_check(cfg)
     if a.command == "status":
         return cmd_status(cfg)
+    if a.command == "debug":
+        from analyst import debug
+        if not a.target:
+            print("Usage: python3 invo.py debug <portfolio id or the trader's page link in quotes>")
+            return 2
+        return debug.run(InvoClient(cfg.resolve("data/tokens.json")), a.target, cfg.resolve("data"))
     if a.command == "test-alert":
         ok = Alerter(cfg.alert_channel).send("Test alert from your Invo analyst. If you can read this, alerts work.\n\n"
                                              + RISK_REMINDER)

@@ -520,6 +520,47 @@ class PickTests(unittest.TestCase):
         self.assertEqual(evaluate_due(db, now), [])  # never evaluated twice
 
 
+class DebugTests(unittest.TestCase):
+    def test_link_with_two_ids_uses_the_portfolio_one(self):
+        self.assertEqual(parse_portfolio_id(f"https://app.invoapp.com/profile/{P2}/portfolio/{P1}"), P1)
+        self.assertEqual(parse_portfolio_id(f"https://app.invoapp.com/u/{P2}/{P1}"), P1)
+        self.assertEqual(parse_portfolio_id(P1.replace("-", "")), P1)
+
+    def run_debug(self, responses, target=P1):
+        import contextlib
+        import io
+        from analyst import debug
+        a = jwt({"expires": time.time() + 600})
+        c = ClientTests.make(self, [FakeResp(200, {"accessToken": a})] + responses)
+        buf, out_dir = io.StringIO(), Path(tempfile.mkdtemp())
+        with contextlib.redirect_stdout(buf):
+            code = debug.run(c, target, out_dir)
+        return code, buf.getvalue(), (out_dir / f"debug_{P1[:8]}.json").read_text()
+
+    def test_user_id_and_other_portfolios_detected_private_fields_hidden(self):
+        port = {"portfolio": {"id": P1, "ownerId": P1, "title": "Main", "winRate": 0, "openPositions": 0,
+                              "owner": {"username": "ferall", "email": "x@y.com"},
+                              "otherPortfolios": [{"id": P2, "title": "Live", "openPositions": 4, "closedPositions": 90}]}}
+        code, out, saved = self.run_debug([FakeResp(200, port), FakeResp(200, {"investmentsTicker": []}),
+                                           FakeResp(200, {"investmentsTicker": []})])
+        self.assertEqual(code, 0)
+        self.assertIn("USER id", out)
+        self.assertIn(P2, out)
+        self.assertIn("open 4", out)
+        self.assertNotIn("x@y.com", out + saved)
+        self.assertIn("[hidden]", saved)
+
+    def test_missing_trade_list_reported(self):
+        port = {"portfolio": {"id": P2, "owner": {"username": "ferall"}}}
+        _, out, _ = self.run_debug([FakeResp(200, port), FakeResp(200, {"positions": [1, 2]}),
+                                    FakeResp(200, {"investmentsTicker": [inv("a")]})])
+        self.assertIn("matches requested: False", out)
+        self.assertIn("'investmentsTicker' is MISSING", out)
+        self.assertIn("{'positions': 2}", out)
+        self.assertIn("1 closed trade(s)", out)
+        self.assertIn("Stats fields NOT present", out)
+
+
 class SummaryTests(unittest.TestCase):
     def test_empty_day_still_has_risk_reminder(self):
         text = render(collect(DB(":memory:"), 0), None, "ok")

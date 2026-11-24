@@ -203,6 +203,10 @@ are three options (`config.json` → `leaderboard.mode`):
 
 Useful commands: `python3 invo.py status`, and the log at `data/analyst.log`.
 
+**A trader shows zero trades but has trades on the website?** Run `python3 invo.py debug "<their page link>"`.
+It shows exactly what Invo returns for that ID (private fields hidden), and says whether it is a user ID rather
+than a portfolio ID, or whether the trader has other portfolios.
+
 ## Costs
 
 - Invo, Hyperliquid data and Telegram: free.
@@ -231,7 +235,7 @@ Useful commands: `python3 invo.py status`, and the log at `data/analyst.log`.
 ## Tests
 
 ```sh
-python3 -m unittest discover -s tests     # 41 offline tests, no network or keys needed
+python3 -m unittest discover -s tests     # 44 offline tests, no network or keys needed
 ```
 
 ## Credits
