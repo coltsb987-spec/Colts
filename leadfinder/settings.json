@@ -1,0 +1,28 @@
+{
+  "_readme": "Lead Finder settings. Edit values, keep keys. Your Google API key goes in the .env file (GOOGLE_MAPS_API_KEY=...), never here.",
+  "tile_miles": 2.0,
+  "max_split_depth": 3,
+  "max_requests_per_search": 300,
+  "cost_per_text_search_usd": 0.035,
+  "cost_per_geocode_usd": 0.005,
+  "_cost_note": "Google's list prices when this was written: Places Text Search (Enterprise fields: phone, website, rating, hours) about $35 per 1,000 requests, Geocoding about $5 per 1,000, each with a monthly free allowance. Check https://mapsplatform.google.com/pricing/ and update these numbers.",
+  "check_websites": true,
+  "outdated_after_years": 3,
+  "business_types": {
+    "barbers": "barber shop",
+    "hairdressers": "hair salon",
+    "beauty salons": "beauty salon",
+    "nail salons": "nail salon",
+    "cafes": "cafe",
+    "restaurants": "restaurant",
+    "takeaways": "takeaway",
+    "plumbers": "plumber",
+    "electricians": "electrician",
+    "builders": "builder",
+    "cleaners": "cleaning service",
+    "car mechanics": "car repair garage",
+    "locksmiths": "locksmith",
+    "dog groomers": "dog groomer",
+    "tailors": "tailor"
+  }
+}

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Finder</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#5f6b7a; --line:#e2e6eb; --accent:#1f6feb;
+          --hot:#c2410c; --warm:#b45309; --cool:#64748b; --ok:#15803d; --bad:#b91c1c; }
+  * { box-sizing:border-box }
+  body { margin:0; font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink) }
+  header { padding:14px 20px; background:var(--card); border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center }
+  header h1 { font-size:18px; margin:0 } .demo { background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:99px; font-size:12px }
+  main { display:grid; grid-template-columns:320px minmax(0,1fr); gap:16px; padding:16px; max-width:1400px; margin:auto }
+  @media (max-width:860px){ main{ grid-template-columns:minmax(0,1fr) } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px }
+  input[type=text], select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:7px; font:inherit }
+  input[type=range] { width:100% }
+  button { font:inherit; padding:9px 14px; border-radius:7px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer }
+  button.secondary { background:#fff; color:var(--accent) } button:disabled { opacity:.5; cursor:default }
+  .row { display:flex; gap:8px; margin-top:14px }
+  .confirm { margin-top:14px; padding:12px; border-radius:8px; background:#eff6ff; border:1px solid #bfdbfe; font-size:14px }
+  .err { color:var(--bad); margin-top:10px; font-size:14px }
+  h2 { font-size:15px; margin:0 0 8px }
+  .past { list-style:none; margin:0; padding:0 } .past li { padding:8px; border-radius:7px; cursor:pointer; font-size:14px }
+  .past li:hover { background:var(--bg) } .past li.on { background:#e8f0fe }
+  .small { font-size:12px; color:var(--muted) }
+  table { width:100%; border-collapse:collapse; font-size:14px }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top }
+  th { font-size:12px; color:var(--muted); font-weight:600; cursor:pointer; white-space:nowrap }
+  .pill { display:inline-block; padding:1px 8px; border-radius:99px; font-size:12px; font-weight:600; color:#fff }
+  .hot{background:var(--hot)} .warm{background:var(--warm)} .cool{background:var(--cool)}
+  .bar { height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin-top:6px } .bar div { height:100%; background:var(--accent) }
+  a { color:var(--accent) } .tablewrap { overflow-x:auto } td:nth-child(3) { white-space:nowrap }
+</style>
+</head>
+<body>
+<header><h1>Lead Finder</h1><span id="demo" class="demo" hidden>Demo mode – made-up businesses, nothing spent</span></header>
+<main>
+  <section>
+    <div class="card">
+      <h2>New search</h2>
+      <label for="place">Town or area</label>
+      <input id="place" type="text" placeholder="e.g. Ilford or Forest Gate">
+      <label for="radius">Radius: <b id="rv">3</b> miles</label>
+      <input id="radius" type="range" min="1" max="10" step="1" value="3">
+      <label for="type">Business type</label>
+      <select id="type"></select>
+      <div class="row"><button id="est">Check cost</button></div>
+      <div id="confirm" class="confirm" hidden></div>
+      <div id="err" class="err"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Past searches</h2>
+      <ul id="past" class="past"></ul>
+    </div>
+  </section>
+  <section class="card">
+    <h2 id="title">Leads</h2>
+    <div id="status" class="small">Run a search or pick a past one.</div>
+    <div class="tablewrap"><table id="tbl" hidden>
+      <thead><tr><th data-k="score">Score</th><th data-k="name">Business</th><th data-k="phone">Phone</th>
+        <th data-k="website_label">Website</th><th data-k="review_count">Reviews</th>
+        <th data-k="business_type">Type</th><th data-k="distance_miles">Miles</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let current = null, leads = [], sortKey = "score", sortDir = -1, poll = null;
+
+async function api(path, body) {
+  const r = await fetch(path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "Something went wrong");
+  return j;
+}
+const form = () => ({place: $("#place").value, radius: +$("#radius").value, business_type: $("#type").value});
+$("#radius").oninput = e => $("#rv").textContent = e.target.value;
+
+$("#est").onclick = async () => {
+  $("#err").textContent = ""; $("#confirm").hidden = true;
+  try {
+    const e = await api("/api/estimate", form());
+    $("#confirm").innerHTML = `<b>${esc(e.label)}</b>, ${e.radius_miles} mile radius, ${esc(e.business_type)}<br>
+      ${e.tiles} tiles × ${e.queries} type(s) = at least ${e.min_requests} Google requests (limit ${e.request_cap}).<br>
+      Estimated cost: <b>$${e.min_cost_usd.toFixed(2)}–$${e.max_cost_usd.toFixed(2)}</b> at list price; Google's monthly free allowance may cover it.
+      ${e.too_big ? "<br><b>Too big for the safety limit. Choose a smaller radius or one business type.</b>" : ""}
+      <div class="row"><button id="go" ${e.too_big ? "disabled" : ""}>Yes, run this search</button><button class="secondary" id="no">Cancel</button></div>`;
+    $("#confirm").hidden = false;
+    $("#no").onclick = () => $("#confirm").hidden = true;
+    $("#go").onclick = async () => {
+      $("#go").disabled = true;
+      try { const r = await api("/api/searches", {...form(), confirm:true}); $("#confirm").hidden = true; await loadPast(); open(r.id); }
+      catch (x) { $("#err").textContent = x.message; $("#go").disabled = false; }
+    };
+  } catch (x) { $("#err").textContent = x.message; }
+};
+
+async function loadPast() {
+  const list = await api("/api/searches");
+  $("#past").innerHTML = list.map(s => `<li data-id="${s.id}" class="${s.id===current?"on":""}">
+    <b>${esc(s.place_query)}</b> · ${s.radius_miles} mi · ${esc(s.business_type)}<br>
+    <span class="small">${s.created_at.slice(0,16).replace("T"," ")} · ${esc(s.status)} · ${s.leads_found} leads (${s.new_leads} new)</span></li>`).join("")
+    || `<li class="small">None yet.</li>`;
+  document.querySelectorAll("#past li[data-id]").forEach(li => li.onclick = () => open(+li.dataset.id));
+}
+
+async function open(id) {
+  current = id; clearTimeout(poll); loadPast();
+  const s = await api(`/api/searches/${id}`);
+  $("#title").textContent = `${s.place_query} · ${s.radius_miles} miles · ${s.business_type}`;
+  if (s.status === "running") {
+    const pct = s.tiles_total ? Math.round(100 * s.tiles_done / s.tiles_total) : 0;
+    $("#status").innerHTML = `${esc(s.message || "Starting...")} ${s.tiles_done}/${s.tiles_total} tiles, ${s.requests_used} requests, ${s.businesses_seen} businesses seen.
+      <div class="bar"><div style="width:${pct}%"></div></div>`;
+    $("#tbl").hidden = true;
+    poll = setTimeout(() => current === id && open(id), 1500);
+    return;
+  }
+  $("#status").textContent = `${s.status === "done" ? "Finished" : s.status}: ${s.message} ${s.requests_used} Google requests used.`;
+  leads = await api(`/api/searches/${id}/leads`);
+  render(); loadPast();
+}
+
+function render() {
+  const rows = [...leads].sort((a, b) => {
+    const x = a[sortKey] ?? "", y = b[sortKey] ?? "";
+    return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * sortDir;
+  });
+  $("#tbl").hidden = !rows.length;
+  if (!rows.length) $("#status").textContent += " No leads in this search.";
+  $("#tbl tbody").innerHTML = rows.map(l => `<tr title="${esc(l.score_reasons)}">
+    <td><span class="pill ${l.band}">${l.score}</span></td>
+    <td><b>${esc(l.name)}</b><br><span class="small">${esc(l.address)}</span><br><a href="${esc(l.maps_url)}" target="_blank" rel="noopener">Google Maps</a></td>
+    <td>${l.phone ? `<a href="tel:${esc(l.phone_intl || l.phone)}">${esc(l.phone)}</a>` : "–"}</td>
+    <td>${esc(l.website_label)}<br><span class="small">${esc(l.website_note)}</span>
+      ${l.website ? `<br><a class="small" href="${esc(l.website)}" target="_blank" rel="noopener noreferrer">link</a>` : ""}</td>
+    <td>${l.review_count}${l.rating ? ` · ${l.rating}★` : ""}</td>
+    <td>${esc(l.business_type)}</td><td>${l.distance_miles}</td></tr>`).join("");
+}
+document.querySelectorAll("th[data-k]").forEach(th => th.onclick = () => {
+  sortDir = sortKey === th.dataset.k ? -sortDir : (th.dataset.k === "name" ? 1 : -1); sortKey = th.dataset.k; render();
+});
+
+(async () => {
+  const c = await api("/api/config");
+  $("#demo").hidden = !c.demo;
+  $("#type").innerHTML = c.types.map(t => `<option>${esc(t)}</option>`).join("");
+  await loadPast();
+})();
+</script>
+</body>
+</html>

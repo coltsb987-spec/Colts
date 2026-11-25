@@ -16,3 +16,6 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Lead Finder database: personal data (UK GDPR) - keep it on your own computer only
+leadfinder/data/
